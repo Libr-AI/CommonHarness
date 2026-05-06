@@ -50,16 +50,18 @@ harness --version    # expect: harness 0.1.0
 
 ### Pin to a different version
 
+Note: env vars must come **before `bash`**, not before `curl` — otherwise the variable only reaches `curl` and is dropped before `install.sh` runs.
+
 ```bash
-HARNESS_VERSION=v0.2.0 curl -fsSL \
-  https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh \
+  | HARNESS_VERSION=v0.2.0 bash
 ```
 
 ### Roll on `main` (always latest, unstable)
 
 ```bash
-HARNESS_VERSION=main curl -fsSL \
-  https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh \
+  | HARNESS_VERSION=main bash
 ```
 
 ### Manual install (if you don't want curl-pipe-bash)
@@ -71,11 +73,11 @@ git clone --depth 1 --branch v0.1.0 \
 ~/.commonharness/v0.1.0/install.sh
 ```
 
-To use SSH instead, set `HARNESS_REPO_URL`:
+To use SSH instead, set `HARNESS_REPO_URL` (note: env var goes before `bash`, not before `curl`):
 
 ```bash
-HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
-  curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh \
+  | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 ```
 
 **Requires**: bash, git, python ≥ 3.9.
@@ -188,8 +190,8 @@ This is what makes the protocol upgradable without clobbering project-specific w
 
 ```bash
 # Install a new version alongside the old one + flip 'current':
-HARNESS_VERSION=v0.2.0 curl -fsSL \
-  https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh \
+  | HARNESS_VERSION=v0.2.0 bash
 
 harness --version    # confirms 0.2.0 is now active
 

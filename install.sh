@@ -4,17 +4,18 @@
 # One-liner (recommended):
 #   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 #
-# Pin to a different version:
-#   HARNESS_VERSION=v0.2.0 \
-#     curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+# Pin to a different version (env var goes BEFORE bash, not before curl —
+# otherwise it only reaches curl and is dropped before install.sh runs):
+#   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh \
+#     | HARNESS_VERSION=v0.2.0 bash
 #
 # Roll on main (latest unstable):
-#   HARNESS_VERSION=main \
-#     curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh \
+#     | HARNESS_VERSION=main bash
 #
-# SSH instead of HTTPS (env override):
-#   HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
-#     curl -fsSL .../install.sh | bash
+# SSH instead of HTTPS:
+#   curl -fsSL .../install.sh \
+#     | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 #
 # Layout produced:
 #   ~/.commonharness/v0.1.0/        ← pinned snapshot (one dir per version)
