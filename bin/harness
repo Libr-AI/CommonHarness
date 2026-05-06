@@ -20,8 +20,14 @@ HARNESS_HOME="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
 TEMPLATES_DIR="$HARNESS_HOME/templates"
 PRESETS_DIR="$HARNESS_HOME/presets"
 
-# Plugin version. Bumped on each release. Embedded into rendered harness.config.toml.
-HARNESS_VERSION="0.1.0"
+# Plugin version. Single source of truth: the VERSION file at repo root.
+# Embedded into rendered harness.config.toml so projects can audit which
+# upstream version they were init'd / last upgraded against.
+if [[ -f "$HARNESS_HOME/VERSION" ]]; then
+  HARNESS_VERSION="$(tr -d '[:space:]' < "$HARNESS_HOME/VERSION")"
+else
+  HARNESS_VERSION="unknown"
+fi
 
 # --- helpers -----------------------------------------------------------------
 
