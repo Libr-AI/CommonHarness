@@ -16,6 +16,18 @@ Language-agnostic. Three AI-platform integrations + GitHub. Designed so target r
 
 ---
 
+## Conventions used in this README
+
+Every code block below has a label telling you **where to run it**:
+
+- **`bash`** blocks → run in your **terminal** (zsh / bash). Copy the whole block; comments (`# ...`) are fine to keep.
+- **`text`** blocks → **paste into your AI tool** (Claude Code / Cursor chat / Codex CLI prompt) as a chat message.
+- File-edit instructions are spelled out in prose ("open `harness.config.toml` in your editor and …") — no code block.
+
+If a block has no explicit "Paste into your AI tool" callout, treat it as a terminal command.
+
+---
+
 ## Install
 
 CommonHarness is distributed as **release tags**. Every install pins to a specific version and lands in its own directory; a `current` symlink picks which version is active. Multiple versions can co-exist for safe upgrades and rollback.
@@ -26,7 +38,7 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 ```
 
-That's the whole install. After it finishes, `~/.local/bin/harness` is symlinked through `~/.agent-harness/current/`. Make sure `~/.local/bin` is on your `PATH`:
+That's the whole install. After it finishes, `~/.local/bin/harness` is symlinked through `~/.commonharness/current/`. Make sure `~/.local/bin` is on your `PATH`:
 
 ```bash
 echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin" \
@@ -55,8 +67,8 @@ HARNESS_VERSION=main curl -fsSL \
 ```bash
 git clone --depth 1 --branch v0.1.0 \
   https://github.com/Libr-AI/CommonHarness.git \
-  ~/.agent-harness/v0.1.0
-~/.agent-harness/v0.1.0/install.sh
+  ~/.commonharness/v0.1.0
+~/.commonharness/v0.1.0/install.sh
 ```
 
 To use SSH instead, set `HARNESS_REPO_URL`:
@@ -71,11 +83,11 @@ HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
 ### Layout produced
 
 ```
-~/.agent-harness/
+~/.commonharness/
 ├── v0.1.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
 ├── v0.2.0/                ← later, after upgrade — old versions kept for rollback
 └── current  →  v0.2.0     ← which version is active
-~/.local/bin/harness  →  ~/.agent-harness/current/bin/harness
+~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 ```
 
 `harness --version` reads from the active install's `VERSION` file. Each project records the version it was init'd against in its `harness.config.toml` (`harness_version = "..."`), so team consistency is auditable.
@@ -84,23 +96,62 @@ HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
 
 ## Quick start
 
-In any project repo:
+### 1. Initialize harness in your project
+
+In your **terminal**, from the project's repo root:
 
 ```bash
+cd /path/to/your/project
 harness init --preset python-uv
 ```
 
-That writes `AGENTS.md`, `CONTRIBUTING.md` (with TODO sections to fill in), `harness.config.toml`, the `.harness/` state directory, and the AI integrations. The CLI prints "Next steps" telling you what to fill in and how to start your first iteration.
+That writes `AGENTS.md`, `CONTRIBUTING.md` (with TODO sections to fill in), `harness.config.toml`, the `.harness/` state directory, and the AI integrations. The CLI prints "Next steps" telling you what to fill in.
 
-Begin a task:
+### 2. Open `CONTRIBUTING.md` in your editor and fill the 4 TODO sections
+
+Search the file for `TODO (project maintainers)` — there are 4 callouts marking:
+- **Path B** (manual setup commands for your project)
+- **Project-specific code style**
+- **Project-specific pitfalls**
+
+Edit them, save, then commit:
 
 ```bash
-harness start                  # prints the coordinator session prompt → paste into your AI tool
-harness implement <task-id>    # resume / enter the implementer session
-harness status                 # CURRENT.md + active brief
-harness end                    # archive a finished task → idle
-harness remember "<text>"      # append to MEMORY.md
-harness curate-memory          # quarterly MEMORY.md cleanup
+git add .
+git commit -m "Adopt harness governance protocol"
+git push
+```
+
+### 3. Start your first iteration
+
+In your **terminal**:
+
+```bash
+harness start
+```
+
+This prints a long block of text — the **coordinator session opening prompt**. The next step happens in your AI tool.
+
+**Paste the printed text into your AI tool** (Claude Code / Cursor / Codex chat) as your first chat message:
+
+```text
+You are the **coordinator** for an iteration on this repository. Follow the harness governance protocol strictly.
+…
+(everything `harness start` printed)
+```
+
+The AI then walks you through the protocol: asks what you want to change, runs triage, writes a task brief at `.harness/active/<task-id>.md`, and tells you how to start the implementer session.
+
+### 4. Continue, resume, end — daily commands
+
+In your **terminal**:
+
+```bash
+harness implement <task-id>    # resume / enter the implementer session (also prints a prompt to paste into AI tool)
+harness status                 # show CURRENT.md + the active brief
+harness end                    # archive a finished task → CURRENT.md back to idle
+harness remember "<text>"      # append a convention/pitfall/decision to MEMORY.md
+harness curate-memory          # quarterly MEMORY.md cleanup (opens it in $EDITOR)
 ```
 
 The full protocol (light vs full path triage, commit-point markers, anti-garbage rules) is rendered into your repo as `AGENTS.md` and `.harness/workflow.md`. Read those.
@@ -143,7 +194,7 @@ HARNESS_VERSION=v0.2.0 curl -fsSL \
 harness --version    # confirms 0.2.0 is now active
 
 # Roll back any time by flipping the symlink (v0.1.0 stays on disk):
-ln -sfn ~/.agent-harness/v0.1.0 ~/.agent-harness/current
+ln -sfn ~/.commonharness/v0.1.0 ~/.commonharness/current
 ```
 
 Old versions stay on disk; switching is a single symlink. Because each version dir is a shallow tag clone, you can't accidentally `git checkout` a different ref and produce inconsistent behavior across the team.

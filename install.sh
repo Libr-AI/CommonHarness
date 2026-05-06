@@ -17,10 +17,10 @@
 #     curl -fsSL .../install.sh | bash
 #
 # Layout produced:
-#   ~/.agent-harness/v0.1.0/        ← pinned snapshot (one dir per version)
-#   ~/.agent-harness/v0.2.0/
-#   ~/.agent-harness/current  →  v0.2.0   ← which one is "active"
-#   ~/.local/bin/harness  →  ~/.agent-harness/current/bin/harness
+#   ~/.commonharness/v0.1.0/        ← pinned snapshot (one dir per version)
+#   ~/.commonharness/v0.2.0/
+#   ~/.commonharness/current  →  v0.2.0   ← which one is "active"
+#   ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 #
 # Upgrade = re-run with new HARNESS_VERSION; old versions stay on disk for
 # rollback. Switching is a single symlink flip. No git checkout drift —
@@ -29,7 +29,7 @@
 set -euo pipefail
 
 REPO_URL="${HARNESS_REPO_URL:-https://github.com/Libr-AI/CommonHarness.git}"
-INSTALL_DIR="${HARNESS_INSTALL_DIR:-$HOME/.agent-harness}"
+INSTALL_DIR="${HARNESS_INSTALL_DIR:-$HOME/.commonharness}"
 VERSION="${HARNESS_VERSION:-v0.1.0}"
 BIN_DIR="${HARNESS_BIN_DIR:-$HOME/.local/bin}"
 
