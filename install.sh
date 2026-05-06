@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 # install.sh — install a pinned release of the harness CLI.
 #
-# Public-repo one-liner:
-#   curl -fsSL https://raw.githubusercontent.com/librai/CommonHarness/main/install.sh | bash
-#   HARNESS_VERSION=v0.2.0 curl -fsSL .../install.sh | bash
+# One-liner (recommended):
+#   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 #
-# Private-repo (after first clone):
-#   ~/.agent-harness/<version>/install.sh
-#   HARNESS_VERSION=v0.2.0 ~/.agent-harness/<version>/install.sh
+# Pin to a different version:
+#   HARNESS_VERSION=v0.2.0 \
+#     curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+#
+# Roll on main (latest unstable):
+#   HARNESS_VERSION=main \
+#     curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh | bash
+#
+# SSH instead of HTTPS (env override):
+#   HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
+#     curl -fsSL .../install.sh | bash
 #
 # Layout produced:
 #   ~/.agent-harness/v0.1.0/        ← pinned snapshot (one dir per version)
@@ -21,7 +28,7 @@
 
 set -euo pipefail
 
-REPO_URL="${HARNESS_REPO_URL:-git@github.com:librai/CommonHarness.git}"
+REPO_URL="${HARNESS_REPO_URL:-https://github.com/Libr-AI/CommonHarness.git}"
 INSTALL_DIR="${HARNESS_INSTALL_DIR:-$HOME/.agent-harness}"
 VERSION="${HARNESS_VERSION:-v0.1.0}"
 BIN_DIR="${HARNESS_BIN_DIR:-$HOME/.local/bin}"

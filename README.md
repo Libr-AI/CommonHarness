@@ -16,37 +16,54 @@ Language-agnostic. Three AI-platform integrations + GitHub. Designed so target r
 
 ---
 
-## Install (version-pinned)
+## Install
 
 CommonHarness is distributed as **release tags**. Every install pins to a specific version and lands in its own directory; a `current` symlink picks which version is active. Multiple versions can co-exist for safe upgrades and rollback.
 
-### One-liner (public repo / when you have HTTPS access)
+### One-liner (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/librai/CommonHarness/v0.1.0/install.sh | bash
-# Pin to a specific version explicitly:
-HARNESS_VERSION=v0.1.0 curl -fsSL https://raw.githubusercontent.com/librai/CommonHarness/v0.1.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 ```
 
-### Private-repo (team install — recommended for `librai/CommonHarness` today)
-
-The `raw.githubusercontent.com` endpoint won't work for private repos, so do a one-time SSH-authenticated clone, then run the bundled `install.sh`:
+That's the whole install. After it finishes, `~/.local/bin/harness` is symlinked through `~/.agent-harness/current/`. Make sure `~/.local/bin` is on your `PATH`:
 
 ```bash
-# First time on this machine:
+echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin" \
+  || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+# (or ~/.bashrc; then open a new terminal)
+
+harness --version    # expect: harness 0.1.0
+```
+
+### Pin to a different version
+
+```bash
+HARNESS_VERSION=v0.2.0 curl -fsSL \
+  https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+```
+
+### Roll on `main` (always latest, unstable)
+
+```bash
+HARNESS_VERSION=main curl -fsSL \
+  https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.sh | bash
+```
+
+### Manual install (if you don't want curl-pipe-bash)
+
+```bash
 git clone --depth 1 --branch v0.1.0 \
-  git@github.com:librai/CommonHarness.git \
+  https://github.com/Libr-AI/CommonHarness.git \
   ~/.agent-harness/v0.1.0
 ~/.agent-harness/v0.1.0/install.sh
-
-# Or all-in-one if you already have ~/.agent-harness/v0.1.0:
-HARNESS_VERSION=v0.1.0 ~/.agent-harness/v0.1.0/install.sh
 ```
 
-After install: `~/.local/bin/harness` is symlinked through `~/.agent-harness/current/`. Make sure `~/.local/bin` is on your `PATH`. Verify:
+To use SSH instead, set `HARNESS_REPO_URL`:
 
 ```bash
-harness --version    # prints e.g. "harness 0.1.0"
+HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git \
+  curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 ```
 
 **Requires**: bash, git, python ≥ 3.9.
@@ -120,14 +137,12 @@ This is what makes the protocol upgradable without clobbering project-specific w
 
 ```bash
 # Install a new version alongside the old one + flip 'current':
-git clone --depth 1 --branch v0.2.0 \
-  git@github.com:librai/CommonHarness.git \
-  ~/.agent-harness/v0.2.0
-HARNESS_VERSION=v0.2.0 ~/.agent-harness/v0.2.0/install.sh
+HARNESS_VERSION=v0.2.0 curl -fsSL \
+  https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
 
 harness --version    # confirms 0.2.0 is now active
 
-# Roll back any time by flipping the symlink:
+# Roll back any time by flipping the symlink (v0.1.0 stays on disk):
 ln -sfn ~/.agent-harness/v0.1.0 ~/.agent-harness/current
 ```
 
