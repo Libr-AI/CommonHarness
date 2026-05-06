@@ -1,0 +1,37 @@
+# Coordinator triage rubric
+
+Run these three checks against the user's described change:
+
+1. **Schema.** Does the change touch the database schema — new column, new table, new model, or a new migration?
+2. **Cross-cutting.** Does the change span 2 or more of these directories: {{paths_cross_cutting_inline}}?
+3. **Tests.** Does the change need more than one new test file?
+
+## Decision
+
+- **All three NO** → **light path**.
+  - Single-phase mini-brief.
+  - Stay in the same session — implementer takes over right after coordinator hands off.
+  - Single commit point; no `> 🛑 New session boundary`.
+  - Examples: typo fix, README clarification, single-helper-function tweak, copy change in an existing route's response.
+
+- **Any YES** → **full path**.
+  - Multi-phase task brief (typically 2–4 phases).
+  - Phase boundaries default to `> 🛑 New session boundary` (open fresh session per phase). Coordinator may mark specific boundaries `> ↪ OK to continue same session` if two phases are tightly coupled and short.
+  - One commit point per phase.
+  - Examples: add new API endpoint, add database column with backfill, add new external service integration.
+
+## User override
+
+The user can override at any point:
+
+- "this is a small change, do light" → coordinator forces light path
+- "this is bigger than it looks, do full" → coordinator forces full path
+
+Always honor the override but log it in the brief's `Open questions` so reviewers see it.
+
+## Edge cases
+
+- **Pure documentation change** (README, docs/, comments only, no code): always light.
+- **Refactor with no behavior change**: judge by surface area — touching one file is light, touching many is full.
+- **Bug fix that requires a test**: light if the test is the only addition; full if the fix spans services + routes + models.
+- **Configuration change** (pyproject, Dockerfile, .env.example): light.

@@ -1,0 +1,81 @@
+# Two-session protocol — full spec
+
+The protocol splits each iteration into two distinct AI sessions: **coordinator** (talks to user, writes the plan) and **implementer** (executes the plan). State lives in [CURRENT.md](CURRENT.md), [active/](active/), and [archive/](archive/).
+
+## Coordinator session — step by step
+
+The coordinator is opened with [templates/start-coordinator.md](templates/start-coordinator.md).
+
+1. **State check.** Read [CURRENT.md](CURRENT.md). If status is not `idle`, abort and tell the user to use the implementer template instead.
+2. **Load context.** Read [MEMORY.md](MEMORY.md), then [../AGENTS.md](../AGENTS.md), then this file.
+3. **Gather intent.** Ask the user, in plain language, what they want to change. Probe for goal, constraints, deadline.
+4. **Triage.** Run the rubric in [triage.md](triage.md):
+   - all NO → **light path**
+   - any YES → **full path**
+   - The user can override with explicit "this is small/big".
+5. **Write the brief.** Create `active/<task-id>.md` from [templates/task-brief.md](templates/task-brief.md). `<task-id>` format: `YYYY-MM-DD-<slug>` (e.g. `2026-04-29-add-tags-to-milestones`).
+   - **Light path**: single phase, single commit point, brief Open questions / log sections kept minimal.
+   - **Full path**: 2–N phases, each with its own checklist + commit point + session-boundary marker.
+6. **Update state.** Set [CURRENT.md](CURRENT.md) to `in_progress: <task-id>`.
+7. **Hand off.**
+   - Light path: tell the user "you can switch to implementer mode in this same session — paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
+   - Full path: tell the user "open a fresh session, paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
+8. **Done.** The coordinator does NOT touch code. Editing scope is `.harness/` only.
+
+## Implementer session — step by step
+
+The implementer is opened with [templates/start-implementer.md](templates/start-implementer.md).
+
+1. **Load state.** Read [CURRENT.md](CURRENT.md), the corresponding `active/<id>.md`, and [MEMORY.md](MEMORY.md).
+2. **Append a session log header** to `## Implementation log` in the brief:
+   ```
+   ### Session <ISO-timestamp> — <tool> — Phase <n>
+   ```
+3. **Find the next unchecked phase.** Execute its checklist items in order.
+4. **Do the work** — write code, run tests, follow the conventions in MEMORY.md and the architecture doc.
+5. **Phase commit point.** When you reach a `> ✋ Commit point`:
+   - Run `{{verify_format}}` (must produce no changes after running once)
+   - Run `{{verify_test}}` (must be all green)
+   - If anything fails: fix it, do not bypass with `--no-verify`.
+   - Tick the phase's checkboxes.
+   - Tell the user the suggested commit message (from the phase's commit-point line) and tell them to commit + push.
+6. **Phase boundary decision.** When the phase is complete:
+   - If the next marker is `> 🛑 New session boundary` → tell the user to open a fresh session for the next phase, then **stop**.
+   - If the next marker is `> ↪ OK to continue same session` → continue with the next phase in the same session.
+7. **Final phase complete?** Run `## Closing checklist` from the brief:
+   - Append a `## Final summary` section (3–5 lines: what was done, key decisions, anything surprising)
+   - Move the brief: `mv .harness/active/<id>.md .harness/archive/<id>.md`
+   - Reset [CURRENT.md](CURRENT.md) to `idle`
+   - Ask the user whether any of these should go to MEMORY.md, and if so, run `./harness remember`
+   - Suggest opening a `{{branch_feature_prefix}}<task-id> → {{branch_main}}` PR using the PR template
+
+## Multi-session log structure
+
+The brief's `## Implementation log` accumulates entries across all implementer sessions of the task:
+
+```markdown
+## Implementation log
+
+### Session 2026-04-29T14:00 — Codex — Phase 1
+- <one-line action>
+- <one-line action>
+- Status: Phase 1 complete; commit @abc1234
+
+### Session 2026-04-30T09:15 — Cursor — Phase 2
+- <one-line action>
+- Status: Phase 2 complete; commit @def5678
+```
+
+The **last session** (which writes Final summary and archives) condenses these into a 3–5 line top-of-file `## Final summary` for future readers.
+
+## Forbidden during a session
+
+- Modifying the **structure** of the task brief (phase definitions, commit points). Only the coordinator does that. If structure must change, tell the user, suggest a fresh coordinator session.
+- Editing files outside the scope listed in the brief without telling the user.
+- `git push --force` on `{{branch_main}}`.
+- `git commit --no-verify`.
+- Skipping `{{verify_format}}` / `{{verify_test}}` at a commit point.
+
+## Recovery (if a session crashes mid-task)
+
+Just open a new implementer session with [templates/start-implementer.md](templates/start-implementer.md) and the task-id. It reads [CURRENT.md](CURRENT.md) → loads the active brief → finds the next unchecked phase → continues. The protocol is designed to be **interruption-safe** because all state is on disk.

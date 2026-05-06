@@ -1,0 +1,44 @@
+---
+name: harness
+description: Use this skill whenever you start work on this repository. Activates the harness governance protocol — coordinator/implementer two-session split, task briefs in .harness/, anti-garbage rules.
+---
+
+# harness — governance protocol
+
+This repository enforces a two-session governance protocol for all iterations. The full spec is in [AGENTS.md](../../../AGENTS.md). This skill is the Codex-side activation hook.
+
+## On every session start
+
+1. Read `.harness/CURRENT.md` (current iteration state)
+2. Read `.harness/MEMORY.md` (cross-task knowledge)
+3. Read `AGENTS.md` and `.harness/workflow.md`
+4. Decide your role from CURRENT.md:
+   - `idle` and user wants changes → **coordinator** role; tell user to run `./harness start`
+   - `in_progress: <id>` → **implementer** role; read `.harness/active/<id>.md` and resume
+
+## Helper command
+
+```
+./harness start              # begin new iteration (coordinator)
+./harness implement <id>     # resume an in-progress task (implementer)
+./harness status             # CURRENT.md + active brief
+./harness end                # archive completed task → idle
+./harness remember "<text>"  # append to MEMORY.md
+```
+
+## Hard rules
+
+- Never edit code outside `.harness/` without an active task brief (unless explicitly out-of-protocol)
+- Every `> ✋ Commit point` requires `{{verify_format}}` clean + `{{verify_test}}` green
+- Every `> 🛑 New session boundary` means stop this session, ask user to open a fresh one
+- No `git push --force` to {{branch_main}}, no `git commit --no-verify`
+
+## Anti-garbage rules
+
+1. No abstractions, parameters, or knobs for hypothetical future needs
+2. No dead code (unused imports, commented-out blocks, unimplemented stubs)
+3. No comments restating what the code does — only the **why** when non-obvious
+
+## More
+
+See [AGENTS.md](../../../AGENTS.md) and [.harness/workflow.md](../../../.harness/workflow.md) for the full protocol.

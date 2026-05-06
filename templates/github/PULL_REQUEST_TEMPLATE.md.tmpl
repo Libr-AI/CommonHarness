@@ -1,0 +1,24 @@
+<!--
+This PR template applies to all pull requests, but the protocol-status field
+is meaningful only for `{{branch_feature_prefix}}* → {{branch_main}}` PRs.{{#has_dev_branch}} For `{{branch_feature_prefix}}* → {{branch_dev}}` testing
+merges, you may clear the protocol-status block.{{/has_dev_branch}}
+-->
+
+<!-- harness:begin -->
+## What changed / Why
+<!-- One or two sentences. -->
+
+## Harness protocol status
+<!-- Required for `{{branch_feature_prefix}}* → {{branch_main}}`. Tick exactly one. -->
+- [ ] **Protocol-tracked task** — task-id: __________ (corresponds to `.harness/archive/<task-id>.md`)
+- [ ] **Out-of-protocol** change — reason: __________
+
+## How tested
+- [ ] `{{verify_format_check}}` passes
+- [ ] `{{verify_test}}` passes
+
+## Risk / Rollback
+<!-- How to revert if this breaks production? Any data migrations? Any external state changes? -->
+
+## Screenshots / output (optional)
+<!-- harness:end -->

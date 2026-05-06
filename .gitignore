@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python (bin/_render.py and friends)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local dev / scratch
+*.log
+.env
+.envrc
+
+# Test scratch (bats-core writes its tmp dirs as $BATS_TEST_TMPDIR;
+# guard against accidentally checking-in fixtures' generated state)
+tests/fixtures/.tmp/
+tests/.tmp/

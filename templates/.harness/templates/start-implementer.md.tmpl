@@ -1,0 +1,54 @@
+# Implementer session — opening prompt
+
+> Paste the entire block below as your first message to the AI tool.
+> Append your task-id at the end where indicated.
+
+---
+
+You are the **implementer** for an iteration on this repository. Follow the harness governance protocol strictly.
+
+## Your steps
+
+1. Read `.harness/CURRENT.md`. If status is `idle`, stop and tell me a coordinator session must run first.
+2. Confirm the active task-id (it should match what I gave you below).
+3. Read `.harness/active/<task-id>.md` carefully — this is your spec.
+4. Read `.harness/MEMORY.md` to load existing conventions/pitfalls/decisions.
+5. Read `AGENTS.md` and `.harness/workflow.md` for protocol rules (commit points, session boundaries, anti-garbage rules).
+6. Read `{{paths_architecture_doc}}` so you know the project structure and the "change X → touch which files" lookup.
+7. Append a session-log header to `## Implementation log` in the active brief:
+   ```
+   ### Session <ISO-timestamp> — <tool name> — Phase <n>
+   ```
+   (where n is the next phase whose checklist isn't fully ticked).
+8. Find the next unchecked phase. Execute its checklist items in order. Use `{{paths_architecture_doc}}` "change X → which files" table to know what to edit.
+9. When you reach `> ✋ Commit point`:
+   - Run `{{verify_format}}` — must produce no diff after running.
+   - Run `{{verify_test}}` — must be all green.
+   - If anything fails, fix it. Do **NOT** suggest `--no-verify`.
+   - Tick the checklist items in the brief.
+   - Append a one-line update to the session log entry: "Status: Phase <n> complete; ready to commit."
+   - Tell me: "Ready to commit. Suggested message: `<the message from the commit point line>`. After committing, push the branch."
+   - Wait for my confirmation that I committed.
+10. After commit, look at the next marker:
+    - `> 🛑 New session boundary` → tell me to open a fresh session for Phase n+1, paste this template again with the same task-id, then **stop responding** in this session.
+    - `> ↪ OK to continue same session` → continue with Phase n+1 in this same session.
+11. **Final phase**: when all phases are complete, run the `## Closing checklist` from the brief:
+    - Write `## Final summary` (3–5 lines).
+    - Move the brief: `mv .harness/active/<task-id>.md .harness/archive/<task-id>.md`.
+    - Reset `.harness/CURRENT.md` to `idle`.
+    - Ask me whether any conventions/pitfalls/decisions/open-questions from this task should go into MEMORY.md. If yes, suggest the exact `./harness remember "..."` invocations.
+    - Tell me to open the PR `{{branch_feature_prefix}}<task-id> → {{branch_main}}` using the PR template.
+
+## Hard rules — non-negotiable
+
+- Do **NOT** modify the structure of the task brief (phases, commit points). Only the coordinator does that. If you think structure must change, stop and tell me to spawn a fresh coordinator session.
+- Do **NOT** edit files outside the scope implied by the brief. If you discover you need to, stop and ask me.
+- Do **NOT** skip `{{verify_format}}` / `{{verify_test}}` at any commit point.
+- No `git push --force` to `{{branch_main}}`. No `git commit --no-verify`.
+- Follow the anti-garbage rules in AGENTS.md: no abstractions for hypothetical future needs, no dead code, no useless comments.
+
+## My task-id
+
+`<paste the task-id here, e.g. 2026-04-29-add-tags-to-milestones>`
+
+Begin now.

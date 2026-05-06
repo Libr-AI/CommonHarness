@@ -1,0 +1,16 @@
+---
+description: Run the harness governance protocol commands (start | implement | status | end | remember | curate-memory)
+---
+
+Run `./harness $ARGUMENTS` from the repo root and report the output verbatim.
+
+Subcommands available:
+
+- `start` — begin a new iteration; prints the coordinator session prompt
+- `implement [<task-id>]` — resume an in-progress task; switches to the feature branch and prints the implementer session prompt
+- `status` — show CURRENT.md and the active brief (if any)
+- `end` — archive a completed task; resets CURRENT.md to idle
+- `remember "<text>"` — append an entry to MEMORY.md (will prompt for category)
+- `curate-memory` — quarterly MEMORY.md cleanup
+
+If the user invokes `/harness` with no subcommand, run `./harness help` and show the usage.

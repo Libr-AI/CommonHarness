@@ -1,0 +1,446 @@
+#!/usr/bin/env bash
+# harness — entrypoint for the harness governance protocol plugin.
+# See AGENTS.md (rendered into target repo) and the upstream README for the spec.
+
+set -euo pipefail
+
+# --- self-location -----------------------------------------------------------
+
+resolve_path() {
+  # readlink -f is GNU-only; fall back to python on macOS.
+  if readlink -f "$1" >/dev/null 2>&1; then
+    readlink -f "$1"
+  else
+    python3 -c "import os, sys; print(os.path.realpath(sys.argv[1]))" "$1"
+  fi
+}
+
+SCRIPT_PATH="$(resolve_path "${BASH_SOURCE[0]}")"
+HARNESS_HOME="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
+TEMPLATES_DIR="$HARNESS_HOME/templates"
+PRESETS_DIR="$HARNESS_HOME/presets"
+
+# Plugin version. Bumped on each release. Embedded into rendered harness.config.toml.
+HARNESS_VERSION="0.1.0"
+
+# --- helpers -----------------------------------------------------------------
+
+today() { date -u +%Y-%m-%d; }
+err()   { echo "harness: $*" >&2; exit 1; }
+
+# Locate the target project root. For init: pwd. For other commands: pwd, must contain harness.config.toml or .harness/.
+locate_target() {
+  TARGET_ROOT="$(pwd)"
+  HARNESS_DIR="$TARGET_ROOT/.harness"
+  CONFIG_FILE="$TARGET_ROOT/harness.config.toml"
+  CURRENT_FILE="$HARNESS_DIR/CURRENT.md"
+  MEMORY_FILE="$HARNESS_DIR/MEMORY.md"
+  ACTIVE_DIR="$HARNESS_DIR/active"
+  ARCHIVE_DIR="$HARNESS_DIR/archive"
+  TEMPLATES_OUT_DIR="$HARNESS_DIR/templates"
+}
+
+require_initialized() {
+  locate_target
+  [[ -f "$CONFIG_FILE" ]] || err "no harness.config.toml found in $TARGET_ROOT — run 'harness init' first"
+  [[ -d "$HARNESS_DIR" ]] || err "no .harness/ found in $TARGET_ROOT — run 'harness init' first"
+}
+
+# Read a single key from harness.config.toml. Delegates to the python helper
+# so we share the same TOML loader (with Python 3.9 fallback) as `harness init`.
+# Usage: cfg_get verify.format
+cfg_get() {
+  local key="$1"
+  python3 "$HARNESS_HOME/bin/_cfg_get.py" "$CONFIG_FILE" "$key"
+}
+
+current_status() {
+  # Prints "idle" or "in_progress: <id>". The status value may itself contain
+  # colons (the in_progress form does), so strip only the leading "status: "
+  # rather than splitting on every colon.
+  awk '/^status:[[:space:]]/ {sub(/^status:[[:space:]]+/, ""); print; exit}' "$CURRENT_FILE"
+}
+
+active_id() {
+  local s
+  s="$(current_status)"
+  if [[ "$s" == in_progress:* ]]; then
+    echo "${s#in_progress: }"
+  fi
+}
+
+set_current() {
+  local new_status="$1"
+  cat > "$CURRENT_FILE" <<EOF
+status: $new_status
+last-updated: $(today)
+
+EOF
+  if [[ "$new_status" == "idle" ]]; then
+    echo "(No active task. To start a new iteration, run \`./harness start\`.)" >> "$CURRENT_FILE"
+  else
+    echo "(Active task: ${new_status#in_progress: }. See .harness/active/${new_status#in_progress: }.md)" >> "$CURRENT_FILE"
+  fi
+}
+
+usage() {
+  cat <<EOF
+Usage: harness <command> [args]
+
+Setup commands:
+  init [--preset <name>] [--force]   Bootstrap harness into the current repo
+  upgrade [--to <ver>] [--dry-run]   Pull latest templates from upstream      (not yet implemented)
+  doctor                             Diagnose drift / broken hooks            (not yet implemented)
+
+Workflow commands:
+  start                              Begin a new iteration (coordinator session)
+  implement [<id>]                   Resume an in-progress task (implementer session)
+  status                             Show CURRENT.md and the active brief
+  end                                Archive a completed task → idle
+  remember "<text>"                  Append an entry to MEMORY.md
+  curate-memory                      Quarterly MEMORY.md cleanup
+
+  help                               Show this message
+
+Available presets:
+$(ls -1 "$PRESETS_DIR"/*.toml 2>/dev/null | sed 's|.*/||; s|\.toml$||; s|^|  |')
+
+See AGENTS.md (rendered into your repo by init) for the full protocol.
+EOF
+}
+
+# --- init --------------------------------------------------------------------
+
+cmd_init() {
+  local preset=""
+  local force=false
+  local non_interactive=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --preset)          preset="${2:-}"; shift 2 ;;
+      --preset=*)        preset="${1#--preset=}"; shift ;;
+      --force)           force=true; shift ;;
+      --non-interactive) non_interactive=true; shift ;;
+      -h|--help)         echo "Usage: harness init [--preset <name>] [--force] [--non-interactive]"; return 0 ;;
+      *)                 err "init: unknown flag '$1'" ;;
+    esac
+  done
+
+  locate_target
+
+  # Pick preset.
+  if [[ -z "$preset" ]]; then
+    if [[ "$non_interactive" == "true" ]]; then
+      preset="none"
+    else
+      echo "Available presets:"
+      local p
+      for p in "$PRESETS_DIR"/*.toml; do
+        [[ -e "$p" ]] || continue
+        echo "  - $(basename "$p" .toml)"
+      done
+      echo "  - none  (start with empty defaults; you'll edit harness.config.toml manually)"
+      read -r -p "Preset [python-uv]: " preset
+      preset="${preset:-python-uv}"
+    fi
+  fi
+
+  local preset_file=""
+  if [[ "$preset" != "none" ]]; then
+    preset_file="$PRESETS_DIR/$preset.toml"
+    [[ -f "$preset_file" ]] || err "unknown preset: $preset (looked for $preset_file)"
+  fi
+
+  # Pre-flight: if config exists and not forcing, refuse.
+  if [[ -f "$CONFIG_FILE" && "$force" != "true" ]]; then
+    err "harness.config.toml already exists. Pass --force to overwrite, or run 'harness upgrade' once that's available."
+  fi
+
+  echo "harness: initializing with preset '$preset' in $TARGET_ROOT"
+
+  # Render everything in one python pass.
+  HARNESS_HOME="$HARNESS_HOME" \
+  TARGET_ROOT="$TARGET_ROOT" \
+  HARNESS_VERSION="$HARNESS_VERSION" \
+  PRESET="$preset" \
+  PRESET_FILE="$preset_file" \
+  TODAY="$(today)" \
+  FORCE="$force" \
+  python3 "$HARNESS_HOME/bin/_render.py"
+
+  echo
+  echo "harness: init complete."
+  echo
+  echo "Next steps:"
+  echo "  1. Review harness.config.toml — adjust [paths] and [verify] for your project."
+  echo "  2. Read AGENTS.md to understand the two-session protocol."
+  echo "  3. Fill in CONTRIBUTING.md TODO sections (Path B / code style / pitfalls)."
+  echo "  4. Run \`harness start\` to begin your first iteration."
+}
+
+# --- workflow commands -------------------------------------------------------
+
+cmd_start() {
+  require_initialized
+  local s
+  s="$(current_status)"
+  if [[ "$s" != "idle" ]]; then
+    echo "harness: a task is already in progress ($s)"
+    echo "Run \`harness status\` to see it, or finish/abandon it before starting a new one."
+    exit 1
+  fi
+
+  cat <<EOF
+================================================================================
+Starting a new iteration. You are about to enter COORDINATOR mode.
+
+Open a session with your AI tool (Claude Code, Codex, or Cursor) in this repo.
+Paste the contents of:
+
+    .harness/templates/start-coordinator.md
+
+as your first message.
+
+The coordinator session will:
+  1. Read CURRENT.md, MEMORY.md, AGENTS.md, workflow.md
+  2. Ask what you want to do
+  3. Run triage (light vs full path)
+  4. Write .harness/active/<task-id>.md
+  5. Update CURRENT.md to in_progress
+  6. Tell you how to start the implementer session
+
+================================================================================
+
+Template contents (you can also \`cat\` it):
+
+EOF
+  cat "$TEMPLATES_OUT_DIR/start-coordinator.md"
+}
+
+cmd_implement() {
+  require_initialized
+  local id="${1:-}"
+  local current_id
+  current_id="$(active_id || true)"
+
+  if [[ -z "$id" ]]; then
+    if [[ -z "$current_id" ]]; then
+      err "no active task. Run \`harness start\` first, or pass a task-id."
+    fi
+    id="$current_id"
+  fi
+
+  local brief="$ACTIVE_DIR/$id.md"
+  [[ -f "$brief" ]] || err "no active brief found at $brief"
+
+  local feature_prefix
+  feature_prefix="$(cfg_get branch.feature_prefix)"
+  feature_prefix="${feature_prefix:-feature/}"
+  local branch="${feature_prefix}${id}"
+
+  if command -v git >/dev/null && git -C "$TARGET_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    if git -C "$TARGET_ROOT" rev-parse --verify "$branch" >/dev/null 2>&1; then
+      echo "harness: switching to branch $branch"
+      git -C "$TARGET_ROOT" switch "$branch"
+    else
+      echo "harness: branch $branch does not exist yet."
+      read -r -p "Create it now from current HEAD? [y/N] " confirm
+      if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        git -C "$TARGET_ROOT" switch -c "$branch"
+      else
+        echo "harness: continuing without switching branch."
+      fi
+    fi
+  fi
+
+  local format_cmd test_cmd
+  format_cmd="$(cfg_get verify.format)"
+  test_cmd="$(cfg_get verify.test)"
+
+  cat <<EOF
+================================================================================
+Resuming task: $id
+Brief: $brief
+
+You are about to enter IMPLEMENTER mode. Paste the contents of:
+
+    .harness/templates/start-implementer.md
+
+into your AI tool, and append your task-id at the end:
+
+    $id
+
+The implementer session will:
+  1. Read CURRENT.md, the active brief, MEMORY.md
+  2. Find the next unchecked phase
+  3. Execute checklist items
+  4. Stop at every commit point (run \`$format_cmd\` + \`$test_cmd\`, ask you to commit)
+  5. Stop at every new-session boundary (ask you to open a fresh session)
+  6. On final phase: write Final summary, archive the brief, reset CURRENT to idle
+
+================================================================================
+
+Template contents:
+
+EOF
+  cat "$TEMPLATES_OUT_DIR/start-implementer.md"
+}
+
+cmd_status() {
+  require_initialized
+  echo "=== .harness/CURRENT.md ==="
+  cat "$CURRENT_FILE"
+  echo
+  local id
+  id="$(active_id || true)"
+  if [[ -n "$id" ]]; then
+    local brief="$ACTIVE_DIR/$id.md"
+    if [[ -f "$brief" ]]; then
+      echo "=== Active brief: $brief ==="
+      head -40 "$brief"
+      echo
+      echo "(showing first 40 lines; \`cat $brief\` for the full file)"
+    else
+      echo "harness: WARNING — CURRENT.md says in_progress but $brief is missing!"
+      exit 1
+    fi
+  fi
+}
+
+cmd_end() {
+  require_initialized
+  local id
+  id="$(active_id || true)"
+  [[ -n "$id" ]] || err "no active task to end (CURRENT.md is idle)"
+  local brief="$ACTIVE_DIR/$id.md"
+  [[ -f "$brief" ]] || err "expected $brief but it does not exist"
+
+  if ! grep -q "^# Final summary" "$brief"; then
+    err "brief is missing '# Final summary' section. Have the implementer session write it before ending."
+  fi
+  if ! awk '/^# Final summary/{flag=1; next} flag && /^# /{exit} flag && NF{found=1} END{exit !found}' "$brief"; then
+    err "'# Final summary' section is empty. Fill it in before ending."
+  fi
+
+  mkdir -p "$ARCHIVE_DIR"
+  mv "$brief" "$ARCHIVE_DIR/$id.md"
+  set_current "idle"
+
+  local format_check test_cmd feature_prefix main_branch
+  format_check="$(cfg_get verify.format_check)"
+  test_cmd="$(cfg_get verify.test)"
+  feature_prefix="$(cfg_get branch.feature_prefix)"
+  main_branch="$(cfg_get branch.main_branch)"
+
+  cat <<EOF
+================================================================================
+Task $id archived → .harness/archive/$id.md
+CURRENT.md reset to idle.
+
+Next steps:
+  1. Verify everything: $format_check && $test_cmd
+  2. Push your feature branch
+  3. Open a PR: ${feature_prefix}${id} → ${main_branch} (the .github/PULL_REQUEST_TEMPLATE.md will load)
+  4. If anything from this task should go to MEMORY.md, run:
+       harness remember "..."
+================================================================================
+EOF
+}
+
+cmd_remember() {
+  require_initialized
+  local text="${1:-}"
+  [[ -n "$text" ]] || err "usage: harness remember \"<text>\""
+  echo "Choose a category:"
+  echo "  1) Convention"
+  echo "  2) Pitfall"
+  echo "  3) Decision"
+  echo "  4) Open question"
+  read -r -p "Category [1-4]: " choice
+  local section
+  case "$choice" in
+    1) section="## Conventions" ;;
+    2) section="## Pitfalls" ;;
+    3) section="## Decisions" ;;
+    4) section="## Open questions" ;;
+    *) err "invalid choice" ;;
+  esac
+
+  local source_id
+  source_id="$(active_id || true)"
+  local source_label
+  if [[ -n "$source_id" ]]; then
+    source_label="archive/$source_id.md (in progress)"
+  else
+    source_label="manual"
+  fi
+
+  python3 - "$MEMORY_FILE" "$section" "$text" "$source_label" <<'PY'
+import sys, pathlib, re
+path, section, text, source = sys.argv[1:]
+content = pathlib.Path(path).read_text(encoding="utf-8")
+lines = content.split("\n")
+out = []
+in_section = False
+inserted = False
+section_pat = re.compile(r"^## ")
+new_entry = f"- {text} (Source: {source})"
+for line in lines:
+    if line.strip() == section:
+        out.append(line)
+        in_section = True
+        continue
+    if in_section and (section_pat.match(line) or line.strip() == "---"):
+        out.append(new_entry)
+        out.append(line)
+        in_section = False
+        inserted = True
+        continue
+    out.append(line)
+if in_section and not inserted:
+    out.append(new_entry)
+pathlib.Path(path).write_text("\n".join(out), encoding="utf-8")
+print(f"Appended to {section}: {text}")
+PY
+}
+
+cmd_curate_memory() {
+  require_initialized
+  echo "Opening MEMORY.md for review."
+  echo "When you're done, this command will update the last-curated date."
+  read -r -p "Open it now in \$EDITOR? [Y/n] " ans
+  if [[ ! "$ans" =~ ^[Nn]$ ]]; then
+    "${EDITOR:-vi}" "$MEMORY_FILE"
+  fi
+  local today_str
+  today_str="$(today)"
+  python3 - "$MEMORY_FILE" "$today_str" <<'PY'
+import sys, pathlib, re
+path, today = sys.argv[1:]
+content = pathlib.Path(path).read_text(encoding="utf-8")
+new = re.sub(r"^last-curated: .*$", f"last-curated: {today}", content, count=1, flags=re.M)
+pathlib.Path(path).write_text(new, encoding="utf-8")
+print(f"last-curated updated to {today}")
+PY
+}
+
+cmd_upgrade() { err "upgrade is not yet implemented (planned for v0.2)"; }
+cmd_doctor()  { err "doctor is not yet implemented (planned for v0.2)"; }
+
+# --- dispatch ----------------------------------------------------------------
+
+case "${1:-help}" in
+  init)           shift; cmd_init "$@" ;;
+  upgrade)        shift; cmd_upgrade "$@" ;;
+  doctor)         shift; cmd_doctor "$@" ;;
+  start)          shift; cmd_start "$@" ;;
+  implement)      shift; cmd_implement "$@" ;;
+  status)         shift; cmd_status "$@" ;;
+  end)            shift; cmd_end "$@" ;;
+  remember)       shift; cmd_remember "$@" ;;
+  curate-memory)  shift; cmd_curate_memory "$@" ;;
+  version|--version) echo "harness $HARNESS_VERSION" ;;
+  help|-h|--help) usage ;;
+  *)              echo "harness: unknown command '$1'" >&2; usage; exit 1 ;;
+esac

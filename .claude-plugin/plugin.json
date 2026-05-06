@@ -1,0 +1,16 @@
+{
+  "name": "agent-harness",
+  "displayName": "Harness governance protocol",
+  "version": "0.1.0",
+  "description": "Coordinator + implementer two-session governance protocol for AI-assisted iteration. Drops `harness` CLI plus .harness/ state into any repo; works with Claude Code, Cursor, and Codex/MCP.",
+  "homepage": "https://github.com/librai/CommonHarness",
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "harness",
+      "description": "Run the harness governance protocol commands (init, start, implement, status, end, remember, curate-memory).",
+      "command": "bin/harness",
+      "argumentsHint": "<subcommand> [args...]"
+    }
+  ]
+}

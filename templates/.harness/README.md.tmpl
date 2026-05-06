@@ -1,0 +1,46 @@
+# `.harness/` — governance state
+
+This directory holds the **state and rules** of the harness governance protocol described in [../AGENTS.md](../AGENTS.md). Everything in here is committed to the repo so that **any contributor can clone and immediately know where iteration is**.
+
+## File map
+
+| Path | Role | Lifetime |
+|---|---|---|
+| [CURRENT.md](CURRENT.md) | Pointer: `idle` or `in_progress: <task-id>` | Always present; mutates |
+| [workflow.md](workflow.md) | The two-session protocol — coordinator and implementer steps | Stable |
+| [triage.md](triage.md) | Coordinator triage rubric (light path vs full path) | Stable |
+| [MEMORY.md](MEMORY.md) | Cross-task conventions / pitfalls / decisions / open questions | Grows over time |
+| [templates/task-brief.md](templates/task-brief.md) | Template for `active/<task-id>.md` | Stable |
+| [templates/start-coordinator.md](templates/start-coordinator.md) | Opening prompt for a coordinator session | Stable |
+| [templates/start-implementer.md](templates/start-implementer.md) | Opening prompt for an implementer session | Stable |
+| [active/](active/) | In-progress task briefs (one `.md` per task) | Per-task |
+| [archive/](archive/) | Completed task briefs | Per-task |
+
+## Lifecycle
+
+```
+idle ─[coordinator]─→ active/<id>.md created ─[implementer phase loop]─→ Final summary written ─→ archive/<id>.md
+```
+
+Only **one task** is in progress at a time. The protocol prevents starting a new coordinator session while `CURRENT.md` is `in_progress`.
+
+## How to interact
+
+Don't edit these files by hand unless you know exactly what you're doing. Use the helper:
+
+```bash
+./harness start              # begin a new iteration (coordinator)
+./harness implement <id>     # resume an in-progress task (implementer)
+./harness status             # show CURRENT.md + active brief
+./harness end                # archive completed task → idle
+./harness remember "<text>"  # append to MEMORY.md
+./harness curate-memory      # quarterly cleanup
+```
+
+See [../harness](../harness).
+
+## Maintenance discipline
+
+- `MEMORY.md`: re-curate at least quarterly; entries must cite a source; hard size limit ~200 lines.
+- `archive/`: keep all entries — they're the audit trail. Don't delete archived briefs even if features were reverted.
+- `active/`: should always contain at most one file (plus `.gitkeep`).

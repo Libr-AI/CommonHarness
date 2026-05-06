@@ -1,0 +1,24 @@
+# Preset: python-uv
+# A modern Python project managed with `uv` and linted/formatted with ruff.
+# Used by `harness init --preset python-uv`.
+
+[verify]
+format       = "uv run ruff format ."
+format_check = "uv run ruff format --check ."
+test         = "uv run pytest"
+
+[paths]
+forbidden_without_brief = ["src", "tests"]
+cross_cutting           = ["src"]
+architecture_doc        = "docs/ARCHITECTURE.md"
+
+[branch]
+feature_prefix = "feature/"
+main_branch    = "main"
+dev_branch     = "dev"
+
+[integrations]
+claude_code = true
+cursor      = true
+codex_mcp   = true
+github_pr   = true

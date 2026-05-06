@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# .claude/hooks/check-harness-state.sh
+#
+# Claude Code PreToolUse hook for Edit/Write tool calls.
+# Reads .harness/CURRENT.md and warns or blocks based on protocol state.
+#
+# Exit codes (Claude Code conventions):
+#   0  -> allow tool call (output goes to user as informational)
+#   2  -> block tool call (output is shown as error and call is denied)
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CURRENT_FILE="$REPO_ROOT/.harness/CURRENT.md"
+ACTIVE_DIR="$REPO_ROOT/.harness/active"
+
+if [[ ! -f "$CURRENT_FILE" ]]; then
+  exit 0
+fi
+
+status_line="$(awk '/^status:[[:space:]]/ {sub(/^status:[[:space:]]+/, ""); print; exit}' "$CURRENT_FILE")"
+branch=""
+if command -v git >/dev/null && git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+  branch="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+fi
+
+if [[ "$status_line" == in_progress:* ]]; then
+  task_id="${status_line#in_progress: }"
+  brief="$ACTIVE_DIR/$task_id.md"
+  if [[ ! -f "$brief" ]]; then
+    cat >&2 <<EOF
+harness: protocol state is broken — CURRENT.md says in_progress: $task_id
+but $brief does not exist.
+
+Resolve: either restore the brief, or run \`./harness end\` after manually
+writing a Final summary, or hand-edit .harness/CURRENT.md to idle.
+EOF
+    exit 2
+  fi
+  exit 0
+fi
+
+# status is idle (or unrecognized). If on a feature branch, warn.
+if [[ "$branch" == {{branch_feature_prefix}}* ]]; then
+  cat <<EOF
+harness: heads up — you're on $branch but no task is in progress.
+Either run \`./harness start\` to enter the protocol, or this is an
+out-of-protocol change (mark accordingly in your PR).
+EOF
+fi
+
+exit 0

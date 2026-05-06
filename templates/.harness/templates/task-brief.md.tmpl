@@ -1,0 +1,86 @@
+<!--
+TEMPLATE for .harness/active/<task-id>.md
+The coordinator copies this and fills in placeholders.
+-->
+
+---
+id: <task-id>                       # YYYY-MM-DD-<slug>, e.g. 2026-04-29-add-tags-to-milestones
+status: in_progress                 # in_progress | completed
+created: <YYYY-MM-DD>
+created_by: <user>                  # use the value of `git config user.name` so it matches commit author
+target_branch: {{branch_feature_prefix}}<task-id>
+path: light | full                  # from triage
+---
+
+# Goal
+
+<One paragraph stating what this task achieves and why. Plain language.>
+
+# Background
+
+<Optional. Link any relevant issues, prior conversations, MEMORY.md entries.>
+
+<!--
+PHASES
+- For LIGHT path: keep just one phase, one commit point, no session boundary marker.
+- For FULL path: 2–4 phases. Each phase has a checklist, a `> ✋ Commit point`,
+  and a `> 🛑 New session boundary` (or `> ↪ OK to continue same session` if justified).
+-->
+
+# Phase 1: <short name>
+
+- [ ] <concrete action 1>
+- [ ] <concrete action 2>
+- [ ] <concrete action 3>
+
+> ✋ Commit point: `<conventional commit message proposal>`
+> Verification before commit: `{{verify_format}}` clean, `{{verify_test}}` green.
+
+> 🛑 New session boundary
+<!-- or: > ↪ OK to continue same session — Reason: <one line> -->
+
+# Phase 2: <short name>
+
+- [ ] <action>
+
+> ✋ Commit point: `<message>`
+
+> 🛑 New session boundary
+
+<!-- repeat phases as needed -->
+
+# Open questions
+
+<Things the coordinator wasn't sure about; the implementer or user should answer
+before/during execution. Each question lifecycle: open → answered (with answer below).>
+
+# Implementation log
+
+<!--
+Appended to by each implementer session.
+Format:
+### Session <ISO-timestamp> — <tool> — Phase <n>
+- <one-line action>
+- <one-line action>
+- Status: <Phase n complete | blocked: ... | in progress>
+-->
+
+# Final summary
+
+<!--
+Filled in ONLY by the last session before archiving.
+3–5 lines: what was done, key decisions, any surprises.
+-->
+
+# Closing checklist
+
+(Last session must tick all of these before archiving.)
+
+- [ ] All phases' checkboxes are ticked
+- [ ] `{{verify_format_check}}` passes
+- [ ] `{{verify_test}}` passes
+- [ ] `## Final summary` written above
+- [ ] Asked user whether anything goes to MEMORY.md
+- [ ] Brief moved to `.harness/archive/<id>.md`
+- [ ] [.harness/CURRENT.md](../CURRENT.md) reset to `idle`
+- [ ] PR opened (`{{branch_feature_prefix}}<task-id> → {{branch_main}}`) with [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md) filled

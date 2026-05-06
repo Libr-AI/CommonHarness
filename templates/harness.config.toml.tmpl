@@ -1,0 +1,30 @@
+# harness.config.toml — per-project configuration for the harness governance protocol.
+# Pin upstream version. `harness upgrade` uses this to decide what to fetch.
+harness_version = "{{harness_version}}"
+
+[verify]
+# Language-agnostic. These are run at every "✋ Commit point".
+format       = "{{verify_format}}"
+format_check = "{{verify_format_check}}"
+test         = "{{verify_test}}"
+
+[paths]
+# Triage: edits inside any of these dirs trigger the FULL path (vs light path).
+forbidden_without_brief = {{paths_forbidden_toml_array}}
+# Triage: spanning 2+ of these counts as cross-cutting.
+cross_cutting           = {{paths_cross_cutting_toml_array}}
+architecture_doc        = "{{paths_architecture_doc}}"
+
+[branch]
+feature_prefix = "{{branch_feature_prefix}}"
+main_branch    = "{{branch_main}}"
+dev_branch     = "{{branch_dev}}"
+
+[integrations]
+claude_code = {{int_claude_code}}
+cursor      = {{int_cursor}}
+codex_mcp   = {{int_codex_mcp}}
+github_pr   = {{int_github_pr}}
+
+[presets]
+preset = "{{preset}}"

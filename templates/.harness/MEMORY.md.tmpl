@@ -1,0 +1,33 @@
+---
+last-curated: {{today}}
+---
+
+# Project memory
+
+Cross-task knowledge that should survive individual task lifecycles. Coordinator and implementer sessions **MUST** read this on startup.
+
+## Conventions
+
+- (initially empty; populated as tasks complete)
+
+## Pitfalls
+
+- (initially empty; populated as tasks complete)
+
+## Decisions
+
+- (initially empty; populated as tasks complete)
+
+## Open questions
+
+- (initially empty)
+
+---
+
+## Maintenance rules
+
+- **Each entry MUST cite a source** — either `archive/<task-id>.md` (link to the task brief that produced it) or `manual` (added by hand without a task).
+- **Re-curate at least quarterly.** Update the `last-curated` date at the top. Use `./harness curate-memory` for guided cleanup.
+- **Hard size limit ~200 lines.** When approaching the limit, consolidate similar entries or promote stable conventions into [{{paths_architecture_doc}}](../{{paths_architecture_doc}}) and remove from here.
+- **No stale entries.** If an entry refers to code that no longer exists, delete it.
+- **Categories are fixed**: Conventions / Pitfalls / Decisions / Open questions. Don't invent new categories.

@@ -1,0 +1,116 @@
+# AGENTS.md — harness governance protocol
+
+> Single source of truth for any AI agent (Claude Code, Codex, Cursor, …) iterating on this repository.
+> [CLAUDE.md](CLAUDE.md), [.cursor/rules/harness.mdc](.cursor/rules/harness.mdc), and [mcp/skills/harness/SKILL.md](mcp/skills/harness/SKILL.md) all point here.
+
+---
+
+## Before you do anything else
+
+1. Read [.harness/CURRENT.md](.harness/CURRENT.md).
+2. If status is `in_progress: <id>`, read [.harness/active/<id>.md](.harness/active/) and resume that task.
+3. If status is `idle` and the user wants to make changes:
+   - Read [.harness/MEMORY.md](.harness/MEMORY.md) (cross-task knowledge — conventions, pitfalls, decisions).
+   - You are entering **coordinator** role. Open [.harness/workflow.md](.harness/workflow.md) and follow it.
+4. **Never edit code under {{paths_forbidden_inline_or}} without an active task brief**, unless the user explicitly says "this is out-of-protocol" (in which case the resulting PR must mark it as such).
+
+---
+
+## Two-session protocol
+
+This repo enforces a **coordinator + implementer** split.
+
+### Coordinator role
+
+- Talks with the user to understand intent.
+- Runs the **triage** in [.harness/triage.md](.harness/triage.md) to decide whether the change is small (light path) or non-trivial (full path).
+- Writes a task brief to `.harness/active/<task-id>.md` using [.harness/templates/task-brief.md](.harness/templates/task-brief.md).
+- Updates [.harness/CURRENT.md](.harness/CURRENT.md) to `in_progress: <task-id>`.
+- Tells the user how to start the implementer session (which template to paste).
+- **Does NOT edit code.** Only writes inside `.harness/`.
+
+Open with the prompt in [.harness/templates/start-coordinator.md](.harness/templates/start-coordinator.md).
+
+### Implementer role
+
+- Reads [.harness/CURRENT.md](.harness/CURRENT.md), the active task brief, and [.harness/MEMORY.md](.harness/MEMORY.md).
+- Executes one phase at a time.
+- Ticks checkboxes and appends to `## Implementation log` as it goes.
+- **Stops at every `> ✋ Commit point`** marker — runs verification (`{{verify_format}}` + `{{verify_test}}`), then prompts the user to commit and push.
+- **Stops at every `> 🛑 New session boundary`** marker — tells the user to open a fresh session for the next phase.
+- On task completion: writes `## Final summary`, moves brief to `.harness/archive/`, sets [.harness/CURRENT.md](.harness/CURRENT.md) back to `idle`, and asks whether to append entries to [.harness/MEMORY.md](.harness/MEMORY.md).
+
+Open with the prompt in [.harness/templates/start-implementer.md](.harness/templates/start-implementer.md).
+
+---
+
+## Anti-garbage rules (three iron laws)
+
+1. **Don't add abstractions, parameters, or config knobs for hypothetical future needs.** Three similar lines beats a premature abstraction.
+2. **Don't leave dead code.** No unused imports, unimplemented stubs, commented-out blocks, or "TODO once X" placeholders without an active task tracking X.
+3. **Don't write comments that restate the code.** Only document the **why** when it's non-obvious — a hidden constraint, a workaround for a bug, a subtle invariant.
+
+---
+
+## Phase commit point requirement
+
+Every `> ✋ Commit point` in a task brief means:
+
+```bash
+{{verify_format}}            # must pass with zero changes after running once
+{{verify_test}}              # must be green
+```
+
+Only then commit. If anything fails, fix and rerun — do **not** `git commit --no-verify`.
+
+---
+
+## When to commit / push / open a new session
+
+The task brief encodes these as protocol markers (inside the markdown):
+
+- `> ✋ Commit point` — stop, verify, commit, push the current branch.
+- `> 🛑 New session boundary` — finish current session; tell user to open a fresh session for the next phase.
+- `> ↪ OK to continue same session` — phase boundary is soft; same session may proceed.
+
+The default between phases is **new session** (per [Phase boundary hardness = medium](.harness/workflow.md)). Mark `↪` only when explicitly justified.
+
+---
+
+## Branch model
+
+```
+{{branch_feature_prefix}}<task-id> ──(free merge)──→ {{branch_dev}}{{#has_dev_branch}}          # {{branch_dev}} = staging/test sandbox{{/has_dev_branch}}
+{{branch_feature_prefix}}<task-id> ──(PR + template)──→ {{branch_main}}      # {{branch_main}} = protected; PR template required
+```
+
+- `{{branch_feature_prefix}}* → {{branch_dev}}` is for testing only; merge freely, no template.{{^has_dev_branch}}  (No dev branch configured; this row does not apply.){{/has_dev_branch}}
+- `{{branch_feature_prefix}}* → {{branch_main}}` requires the PR template at [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md). Self-merge is allowed (the template's protocol-status field carries the discipline).{{#has_dev_branch}}
+- There is **no `{{branch_dev}} → {{branch_main}}` flow** — {{branch_dev}} is throwaway.{{/has_dev_branch}}
+
+Forbidden:
+
+- `git push --force` to `{{branch_main}}`
+- `git commit --no-verify` to bypass the phase commit verification
+- Skipping phase commit point checks
+
+---
+
+## File structure quick reference
+
+See [{{paths_architecture_doc}}]({{paths_architecture_doc}}) for the project layout, the "**Change X → touch which files**" lookup table, and a data-flow walkthrough.
+
+---
+
+## Helper command
+
+```
+./harness start                  # begin a new iteration (coordinator)
+./harness implement <task-id>    # resume an in-progress task (implementer)
+./harness status                 # show CURRENT.md + active brief
+./harness end                    # archive completed task → idle
+./harness remember "<text>"      # append entry to MEMORY.md
+./harness curate-memory          # quarterly MEMORY.md cleanup
+```
+
+See [harness](harness).
