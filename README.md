@@ -34,19 +34,41 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 
 ### One-liner (recommended)
 
+#### Step 1 — Download and install
+
+In your terminal:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.1.0/install.sh | bash
 ```
 
-That's the whole install. After it finishes, `~/.local/bin/harness` is symlinked through `~/.commonharness/current/`. Make sure `~/.local/bin` is on your `PATH`:
+When this finishes, the `harness` CLI is at `~/.local/bin/harness` (symlinked through `~/.commonharness/current/`).
+
+#### Step 2 — Make sure `~/.local/bin` is on your `PATH`
+
+Check whether it's already there:
 
 ```bash
-echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin" \
-  || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-# (or ~/.bashrc; then open a new terminal)
-
-harness --version    # expect: harness 0.1.0
+echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin"
 ```
+
+- **If it prints a path** (e.g. `/Users/you/.local/bin`) → already set, skip to Step 3.
+- **If it prints nothing** → add it to your shell rc and reload it:
+
+  ```bash
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+  source ~/.zshrc
+  ```
+
+  > macOS default shell since Catalina is **zsh** (`~/.zshrc`). If you're on bash, use `~/.bashrc` instead. If `source` doesn't seem to take effect, open a fresh terminal window.
+
+#### Step 3 — Verify
+
+```bash
+harness --version
+```
+
+Expected: `harness 0.1.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
 
 ### Pin to a different version
 
