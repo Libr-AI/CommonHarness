@@ -64,10 +64,10 @@ The assistant will tell you to open a Pull Request from `{{branch_feature_prefix
 
 | Problem | Fix |
 |---|---|
-| AI assistant doesn't seem to follow the protocol — just starts writing code | Open a terminal in the repo, run `./harness start`, copy the printed prompt, paste it as your first message. This forces protocol activation. |
+| AI assistant doesn't seem to follow the protocol — just starts writing code | Open a terminal in the repo, run `harness start`, copy the printed prompt, paste it as your first message. This forces protocol activation. |
 | Tests fail and you don't know why | Tell the assistant: "the tests are failing, please debug." It can read the error and fix it for you. |
-| Assistant gets stuck or confused | Type "let's start over" and the assistant will run `./harness end` to reset state, then begin again. |
-| You want to pause for the day | Just close the session. State is saved in `.harness/active/<task-id>.md`. Tomorrow, run `./harness implement <task-id>` (or just say "resume task <task-id>" to your AI tool). |
+| Assistant gets stuck or confused | Type "let's start over" and the assistant will run `harness end` to reset state, then begin again. |
+| You want to pause for the day | Just close the session. State is saved in `.harness/active/<task-id>.md`. Tomorrow, run `harness implement <task-id>` (or just say "resume task <task-id>" to your AI tool). |
 
 ---
 
@@ -96,12 +96,12 @@ The assistant will tell you to open a Pull Request from `{{branch_feature_prefix
 ### Useful one-liners
 
 ```bash
-./harness status                     # what task is in flight?
-./harness implement <task-id>        # resume a paused task (also switches to its branch)
-./harness end                        # archive a finished task
-./harness remember "<text>"          # save a long-term decision/convention to MEMORY.md
-./harness curate-memory              # quarterly MEMORY.md cleanup
-./harness help                       # full command list
+harness status                     # what task is in flight?
+harness implement <task-id>        # resume a paused task (also switches to its branch)
+harness end                        # archive a finished task
+harness remember "<text>"          # save a long-term decision/convention to MEMORY.md
+harness curate-memory              # quarterly MEMORY.md cleanup
+harness help                       # full command list
 ```
 
 ### Where to look
@@ -114,7 +114,7 @@ The assistant will tell you to open a Pull Request from `{{branch_feature_prefix
 
 ### Getting unstuck
 
-- `./harness status` shows current state.
+- `harness status` shows current state.
 - See [Path A troubleshooting](#troubleshooting-path-a) for AI-driven flow issues.
 - Project-specific gotchas, if any, are documented under [Project-specific pitfalls](#project-specific-pitfalls) below.
 <!-- harness:end -->
@@ -158,9 +158,9 @@ Fill in the TODO blocks below with project-specific details, then delete the
 Even without an AI assistant, **all changes still go through the harness protocol**:
 
 ```bash
-./harness start              # creates a task brief in .harness/active/
+harness start              # creates a task brief in .harness/active/
 # ... edit code, run tests, commit at every "✋ Commit point" in the brief ...
-./harness end                # archive the brief when the task is complete
+harness end                # archive the brief when the task is complete
 ```
 
 The brief is your checklist. Open it, work through the phases, tick the boxes, commit at the marked points. See [.harness/workflow.md](.harness/workflow.md) for the full protocol spec.

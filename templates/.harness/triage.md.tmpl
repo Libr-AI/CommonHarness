@@ -1,5 +1,21 @@
 # Coordinator triage rubric
 
+## Step 0 — Scaffold gate
+
+Before running the questions below, check whether `.harness/SCAFFOLD-PENDING`
+exists in the repo root.
+
+- **Marker present** → force **scaffold path**. Skip the three-question rubric.
+  The project is greenfield-pending; the brief uses the pre-named scaffold
+  phases (architecture decisions → directory skeleton → first runnable module
+  → CONTRIBUTING fill + CI). See `templates/task-brief.md` scaffold section.
+- **Marker absent** → continue to the three-question rubric below.
+
+`harness end` removes the marker when a `path: scaffold` brief is archived, so
+this gate becomes a no-op once the scaffold task is complete.
+
+## Steps 1–3 — Light vs full rubric
+
 Run these three checks against the user's described change:
 
 1. **Schema.** Does the change touch the database schema — new column, new table, new model, or a new migration?
@@ -8,6 +24,7 @@ Run these three checks against the user's described change:
 
 ## Decision
 
+- **Scaffold gate triggered** → **scaffold path** (see Step 0).
 - **All three NO** → **light path**.
   - Single-phase mini-brief.
   - Stay in the same session — implementer takes over right after coordinator hands off.
@@ -19,6 +36,37 @@ Run these three checks against the user's described change:
   - Phase boundaries default to `> 🛑 New session boundary` (open fresh session per phase). Coordinator may mark specific boundaries `> ↪ OK to continue same session` if two phases are tightly coupled and short.
   - One commit point per phase.
   - Examples: add new API endpoint, add database column with backfill, add new external service integration.
+
+## Step 4 — Spec gate
+
+After choosing a path, decide whether the task warrants a standalone design
+spec at `{{paths_spec_dir}}<task-id>.md` (in addition to the task brief).
+
+A spec is a design artifact (Goal / Constraints / Design decisions /
+Alternatives / Risks / Open questions); a brief is an execution checklist. The
+spec is for design review; the brief is for getting work done.
+
+**Light path** — default **NO**. The brief is sufficient. Only write a spec
+if the user explicitly asks for one.
+
+**Full path** — write a spec if **any** of these hold:
+
+1. Changes span 2+ cross-cutting dirs ({{paths_cross_cutting_inline}}).
+2. Introduces a new external dependency or service (new package in the
+   manifest, new env var pointing at an external API, new infra component).
+3. Changes an external interface (HTTP route signature, CLI command/flag,
+   config-file schema, public function signature on a shared library).
+4. Affects the data model (new migration, schema change, persistence layer).
+5. The user explicitly asks for a spec.
+
+**Scaffold path** — default **NO**. The architecture doc at
+`{{paths_architecture_doc}}` already captures system-level decisions. Trigger
+a spec only on explicit user request.
+
+When the spec gate fires, the brief gains a `spec:` frontmatter field and a
+**Phase 0: Write design spec** before its existing phases. The implementer
+session writes the spec file, commits it (`docs: spec for <task-id>`), then
+stops at a session boundary so the user can review before any code changes.
 
 ## User override
 

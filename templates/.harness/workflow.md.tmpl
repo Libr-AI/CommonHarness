@@ -6,21 +6,39 @@ The protocol splits each iteration into two distinct AI sessions: **coordinator*
 
 The coordinator is opened with [templates/start-coordinator.md](templates/start-coordinator.md).
 
-1. **State check.** Read [CURRENT.md](CURRENT.md). If status is not `idle`, abort and tell the user to use the implementer template instead.
-2. **Load context.** Read [MEMORY.md](MEMORY.md), then [../AGENTS.md](../AGENTS.md), then this file.
-3. **Gather intent.** Ask the user, in plain language, what they want to change. Probe for goal, constraints, deadline.
-4. **Triage.** Run the rubric in [triage.md](triage.md):
-   - all NO → **light path**
-   - any YES → **full path**
+1. **State check.** Read [CURRENT.md](CURRENT.md). If status is not `idle`, abort and tell the user to use the implementer template instead. Also check whether `.harness/SCAFFOLD-PENDING` exists — its presence forces scaffold path in step 4.
+2. **TODO gate.** Read [../CONTRIBUTING.md](../CONTRIBUTING.md). If it still contains any `🛠 TODO (project maintainers)` block, **and** `SCAFFOLD-PENDING` is absent (scaffold's Phase 4 covers fill), the project setup is incomplete. Propose a `<today>-fill-contributing` prep task (light path, single phase). See "TODO gate" section below for the prep-task spec. The user's real request becomes the *next* task after the prep task archives.
+3. **Load context.** Read [MEMORY.md](MEMORY.md), then [../AGENTS.md](../AGENTS.md), then this file.
+4. **Gather intent.** Ask the user, in plain language, what they want to change. Probe for goal, constraints, deadline.
+5. **Triage.** Run the rubric in [triage.md](triage.md):
+   - scaffold gate (marker present) → **scaffold path**, skip rubric
+   - all rubric NO → **light path**
+   - any rubric YES → **full path**
    - The user can override with explicit "this is small/big".
-5. **Write the brief.** Create `active/<task-id>.md` from [templates/task-brief.md](templates/task-brief.md). `<task-id>` format: `YYYY-MM-DD-<slug>` (e.g. `2026-04-29-add-tags-to-milestones`).
+6. **Spec gate.** After choosing a path, evaluate whether the task needs a standalone design spec at `{{paths_spec_dir}}<task-id>.md` (see [triage.md](triage.md) → Spec gate). If so, the brief gains a `spec:` frontmatter field and a Phase 0 to write the spec.
+7. **Write the brief.** Create `active/<task-id>.md` from [templates/task-brief.md](templates/task-brief.md). `<task-id>` format: `YYYY-MM-DD-<slug>` (e.g. `2026-04-29-add-tags-to-milestones`).
    - **Light path**: single phase, single commit point, brief Open questions / log sections kept minimal.
    - **Full path**: 2–N phases, each with its own checklist + commit point + session-boundary marker.
-6. **Update state.** Set [CURRENT.md](CURRENT.md) to `in_progress: <task-id>`.
-7. **Hand off.**
-   - Light path: tell the user "you can switch to implementer mode in this same session — paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
-   - Full path: tell the user "open a fresh session, paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
-8. **Done.** The coordinator does NOT touch code. Editing scope is `.harness/` only.
+   - **Scaffold path**: 4 pre-named phases — (1) architecture decisions, (2) directory skeleton + manifest, (3) first runnable module + verify wiring, (4) CONTRIBUTING fill + CI + close-out (which removes `.harness/SCAFFOLD-PENDING`). Each phase is a `> 🛑 New session boundary`.
+   - **Spec-bearing brief** (any path): prepend a Phase 0 whose only work is drafting `{{paths_spec_dir}}<task-id>.md` and committing it.
+8. **Update state.** Set [CURRENT.md](CURRENT.md) to `in_progress: <task-id>`.
+9. **Hand off.**
+   - Light path (no spec): tell the user "you can switch to implementer mode in this same session — paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
+   - Full or scaffold path, or any spec-bearing brief: tell the user "open a fresh session, paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
+10. **Done.** The coordinator does NOT touch code. Editing scope is `.harness/` only (plus drafting spec outline *inside the brief* — the actual `{{paths_spec_dir}}<task-id>.md` file is written by the implementer in Phase 0).
+
+## TODO gate — prep-task spec
+
+Triggered in coordinator step 2 when unfilled `🛠 TODO (project maintainers)` blocks are detected in [../CONTRIBUTING.md](../CONTRIBUTING.md) and `.harness/SCAFFOLD-PENDING` is absent.
+
+Prep-task brief: `active/<today>-fill-contributing.md`, frontmatter `path: light`, single phase:
+
+1. **Scan project artefacts.** Read the language manifest (`pyproject.toml` / `package.json` / `Cargo.toml` / `go.mod` / `Gemfile`), CI workflows (`.github/workflows/*.yml`), formatter configs (`.prettierrc`, `[tool.ruff]` in `pyproject.toml`, `rustfmt.toml`). Derive candidate answers for each TODO block.
+2. **Confirm with user, block by block.** For each `🛠 TODO (project maintainers)` callout, present the detected candidates and ask the user to confirm or override. Example: "Detected `uv` + `ruff` — propose Path B install = `uv sync`; day-to-day test = `uv run pytest`. Confirm or override?" **Never write without explicit confirmation.**
+3. **Write confirmed content into [../CONTRIBUTING.md](../CONTRIBUTING.md).** Replace each TODO block with the confirmed answers; delete the `🛠 callout` opening line.
+4. **Commit point.** Run `{{verify_format}}` if it covers `CONTRIBUTING.md`. Commit message: `chore: fill CONTRIBUTING.md project-specific sections`.
+
+After this prep task archives, `harness start` again to begin the user's original request.
 
 ## Implementer session — step by step
 
@@ -46,7 +64,7 @@ The implementer is opened with [templates/start-implementer.md](templates/start-
    - Append a `## Final summary` section (3–5 lines: what was done, key decisions, anything surprising)
    - Move the brief: `mv .harness/active/<id>.md .harness/archive/<id>.md`
    - Reset [CURRENT.md](CURRENT.md) to `idle`
-   - Ask the user whether any of these should go to MEMORY.md, and if so, run `./harness remember`
+   - Ask the user whether any of these should go to MEMORY.md, and if so, run `harness remember`
    - Suggest opening a `{{branch_feature_prefix}}<task-id> → {{branch_main}}` PR using the PR template
 
 ## Multi-session log structure

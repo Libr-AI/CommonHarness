@@ -44,6 +44,41 @@ locate_target() {
   ACTIVE_DIR="$HARNESS_DIR/active"
   ARCHIVE_DIR="$HARNESS_DIR/archive"
   TEMPLATES_OUT_DIR="$HARNESS_DIR/templates"
+  SCAFFOLD_MARKER="$HARNESS_DIR/SCAFFOLD-PENDING"
+}
+
+# Greenfield heuristic. Returns 0 (greenfield) iff ALL of:
+#   - project is NOT already harness-managed (no harness.config.toml, no .harness/)
+#     ← strongest signal: if these exist, someone has already run `harness init` here
+#   - no language manifest present (pyproject.toml, package.json, Cargo.toml,
+#     go.mod, pom.xml, build.gradle, Gemfile)
+#   - no source dirs (src/, lib/, app/, tests/, test/)
+#   - no architecture doc at $TARGET_ROOT/docs/ARCHITECTURE.md
+#   - README absent OR ≤ 200 bytes (a `git init` stub doesn't disqualify)
+# Harness-managed check is load-bearing for upgrades; manifest-absent is the
+# load-bearing signal for fresh projects.
+detect_greenfield() {
+  # An already-harness-managed project is NEVER greenfield — even if its source
+  # layout doesn't match common conventions. Without this check, `harness init
+  # --force` on an existing project with a non-standard source dir (e.g., a bot
+  # project where code lives in `bot/` rather than `src/`) would false-positive.
+  [[ -f "$TARGET_ROOT/harness.config.toml" ]] && return 1
+  [[ -d "$TARGET_ROOT/.harness" ]] && return 1
+
+  local f
+  for f in pyproject.toml package.json Cargo.toml go.mod pom.xml build.gradle Gemfile; do
+    [[ -f "$TARGET_ROOT/$f" ]] && return 1
+  done
+  for f in src lib app tests test; do
+    [[ -d "$TARGET_ROOT/$f" ]] && return 1
+  done
+  [[ -f "$TARGET_ROOT/docs/ARCHITECTURE.md" ]] && return 1
+  if [[ -f "$TARGET_ROOT/README.md" ]]; then
+    local size
+    size=$(wc -c < "$TARGET_ROOT/README.md" | tr -d ' ')
+    [[ "$size" -gt 200 ]] && return 1
+  fi
+  return 0
 }
 
 require_initialized() {
@@ -121,6 +156,7 @@ cmd_init() {
   local preset=""
   local force=false
   local non_interactive=false
+  local greenfield_flag=""  # "" = auto-detect; "true" = force greenfield; "false" = force brownfield
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -128,7 +164,9 @@ cmd_init() {
       --preset=*)        preset="${1#--preset=}"; shift ;;
       --force)           force=true; shift ;;
       --non-interactive) non_interactive=true; shift ;;
-      -h|--help)         echo "Usage: harness init [--preset <name>] [--force] [--non-interactive]"; return 0 ;;
+      --greenfield)      greenfield_flag="true"; shift ;;
+      --no-greenfield)   greenfield_flag="false"; shift ;;
+      -h|--help)         echo "Usage: harness init [--preset <name>] [--force] [--non-interactive] [--greenfield|--no-greenfield]"; return 0 ;;
       *)                 err "init: unknown flag '$1'" ;;
     esac
   done
@@ -163,7 +201,28 @@ cmd_init() {
     err "harness.config.toml already exists. Pass --force to overwrite, or run 'harness upgrade' once that's available."
   fi
 
-  echo "harness: initializing with preset '$preset' in $TARGET_ROOT"
+  # Resolve greenfield mode. Flag wins; otherwise auto-detect with confirm prompt.
+  local greenfield="false"
+  case "$greenfield_flag" in
+    true)  greenfield="true" ;;
+    false) greenfield="false" ;;
+    "")
+      if detect_greenfield; then
+        if [[ "$non_interactive" == "true" ]]; then
+          greenfield="true"
+          echo "harness: detected greenfield project; --non-interactive auto-confirmed scaffold path."
+        else
+          echo "harness: this looks like a greenfield project (no language manifest, no source dirs, no architecture doc)."
+          read -r -p "Bootstrap with scaffold path? [Y/n] " gf_confirm
+          if [[ ! "$gf_confirm" =~ ^[Nn]$ ]]; then
+            greenfield="true"
+          fi
+        fi
+      fi
+      ;;
+  esac
+
+  echo "harness: initializing with preset '$preset' in $TARGET_ROOT (greenfield=$greenfield)"
 
   # Render everything in one python pass.
   HARNESS_HOME="$HARNESS_HOME" \
@@ -173,7 +232,26 @@ cmd_init() {
   PRESET_FILE="$preset_file" \
   TODAY="$(today)" \
   FORCE="$force" \
+  HARNESS_GREENFIELD="$greenfield" \
   python3 "$HARNESS_HOME/bin/_render.py"
+
+  # Write scaffold marker iff greenfield AND not already present. The guarded
+  # creation lets `harness init --force` mid-scaffold leave an in-flight marker
+  # alone. To deliberately abandon scaffold mode, re-init with --no-greenfield.
+  if [[ "$greenfield" == "true" && ! -f "$SCAFFOLD_MARKER" ]]; then
+    mkdir -p "$HARNESS_DIR"
+    cat > "$SCAFFOLD_MARKER" <<EOF
+# scaffold pending — coordinator will route the first task to scaffold path.
+# Removed automatically when a path: scaffold brief archives via 'harness end',
+# or by Phase 4 of the scaffold task itself.
+created: $(today)
+preset: $preset
+EOF
+  elif [[ "$greenfield" == "false" && "$greenfield_flag" == "false" && -f "$SCAFFOLD_MARKER" ]]; then
+    # Explicit --no-greenfield on a project mid-scaffold: clear the marker.
+    rm "$SCAFFOLD_MARKER"
+    echo "harness: --no-greenfield cleared an existing scaffold marker."
+  fi
 
   echo
   echo "harness: init complete."
@@ -181,8 +259,13 @@ cmd_init() {
   echo "Next steps:"
   echo "  1. Review harness.config.toml — adjust [paths] and [verify] for your project."
   echo "  2. Read AGENTS.md to understand the two-session protocol."
-  echo "  3. Fill in CONTRIBUTING.md TODO sections (Path B / code style / pitfalls)."
-  echo "  4. Run \`harness start\` to begin your first iteration."
+  if [[ "$greenfield" == "true" ]]; then
+    echo "  3. Run \`harness start\` — your first task is a scaffold-path bootstrap that"
+    echo "     fills CONTRIBUTING.md interactively. DO NOT pre-fill the TODO sections."
+  else
+    echo "  3. Run \`harness start\` — the coordinator will offer to fill CONTRIBUTING.md"
+    echo "     TODO sections as a prep task (proposes candidates, asks for confirmation)."
+  fi
 }
 
 # --- workflow commands -------------------------------------------------------
@@ -209,13 +292,26 @@ Paste the contents of:
 as your first message.
 
 The coordinator session will:
-  1. Read CURRENT.md, MEMORY.md, AGENTS.md, workflow.md
-  2. Ask what you want to do
-  3. Run triage (light vs full path)
-  4. Write .harness/active/<task-id>.md
-  5. Update CURRENT.md to in_progress
-  6. Tell you how to start the implementer session
+  1. Read CURRENT.md (+ check for .harness/SCAFFOLD-PENDING), MEMORY.md, AGENTS.md, workflow.md
+  2. Run the TODO gate (offer to fill unfilled CONTRIBUTING.md TODO blocks first)
+  3. Ask what you want to do
+  4. Run triage — scaffold gate (if SCAFFOLD-PENDING present) / light / full
+  5. Apply spec gate — decide if a standalone design spec is warranted
+  6. Write .harness/active/<task-id>.md
+  7. Update CURRENT.md to in_progress
+  8. Tell you how to start the implementer session
 
+EOF
+  if [[ -f "$SCAFFOLD_MARKER" ]]; then
+    cat <<EOF
+NOTE: .harness/SCAFFOLD-PENDING is present — the coordinator WILL route this
+task to scaffold path (4 pre-named phases: architecture decisions → directory
+skeleton → first runnable module → CONTRIBUTING fill + CI). The three-question
+triage rubric is skipped. The marker is removed when Phase 4 completes.
+
+EOF
+  fi
+  cat <<EOF
 ================================================================================
 
 Template contents (you can also \`cat\` it):
@@ -295,6 +391,12 @@ EOF
 
 cmd_status() {
   require_initialized
+  if [[ -f "$SCAFFOLD_MARKER" ]]; then
+    echo "=== Scaffold bootstrap pending ==="
+    echo "First task will be routed to the scaffold path (greenfield setup)."
+    echo "See $SCAFFOLD_MARKER for the marker file."
+    echo
+  fi
   echo "=== .harness/CURRENT.md ==="
   cat "$CURRENT_FILE"
   echo
@@ -332,6 +434,14 @@ cmd_end() {
   mkdir -p "$ARCHIVE_DIR"
   mv "$brief" "$ARCHIVE_DIR/$id.md"
   set_current "idle"
+
+  # Belt-and-braces scaffold-marker cleanup. Phase 4 of the scaffold brief is
+  # supposed to delete the marker; this is a safety net for archives whose
+  # implementer forgot. Only clear when the archived brief is path: scaffold.
+  if [[ -f "$SCAFFOLD_MARKER" ]] && grep -q "^path: scaffold" "$ARCHIVE_DIR/$id.md"; then
+    rm "$SCAFFOLD_MARKER"
+    echo "harness: cleared .harness/SCAFFOLD-PENDING (scaffold task archived)."
+  fi
 
   local format_check test_cmd feature_prefix main_branch
   format_check="$(cfg_get verify.format_check)"

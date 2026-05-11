@@ -14,6 +14,9 @@ forbidden_without_brief = {{paths_forbidden_toml_array}}
 # Triage: spanning 2+ of these counts as cross-cutting.
 cross_cutting           = {{paths_cross_cutting_toml_array}}
 architecture_doc        = "{{paths_architecture_doc}}"
+# Spec gate: standalone design specs land here when the coordinator decides
+# a task needs one (see .harness/triage.md → Spec gate).
+spec_dir                = "{{paths_spec_dir}}"
 
 [branch]
 feature_prefix = "{{branch_feature_prefix}}"

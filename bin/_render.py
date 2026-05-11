@@ -25,6 +25,7 @@ PRESET          = os.environ.get("PRESET", "none")
 PRESET_FILE     = os.environ.get("PRESET_FILE", "")
 TODAY           = os.environ.get("TODAY", "")
 FORCE           = os.environ.get("FORCE", "false") == "true"
+GREENFIELD      = os.environ.get("HARNESS_GREENFIELD", "false") == "true"
 
 TEMPLATES_DIR = HARNESS_HOME / "templates"
 
@@ -114,6 +115,7 @@ def build_vars(preset: dict) -> dict[str, str]:
     forbidden = paths.get("forbidden_without_brief", []) or []
     cross_cut = paths.get("cross_cutting", []) or []
     arch_doc  = paths.get("architecture_doc", "docs/ARCHITECTURE.md")
+    spec_dir  = paths.get("spec_dir", "docs/specs/")
 
     feature_prefix = branch.get("feature_prefix", "feature/")
     main_branch    = branch.get("main_branch", "main")
@@ -141,6 +143,7 @@ def build_vars(preset: dict) -> dict[str, str]:
         "paths_cross_cutting_toml_array": toml_array(cross_cut),
 
         "paths_architecture_doc":      arch_doc,
+        "paths_spec_dir":              spec_dir,
 
         "branch_feature_prefix":       feature_prefix,
         "branch_main":                 main_branch,
@@ -152,6 +155,11 @@ def build_vars(preset: dict) -> dict[str, str]:
         "int_cursor":                  bf("cursor"),
         "int_codex_mcp":               bf("codex_mcp"),
         "int_github_pr":               bf("github_pr"),
+
+        # Greenfield bootstrap flag — when set, templates with
+        # {{#scaffold_mode}}…{{/scaffold_mode}} blocks emit their scaffold-only
+        # content (scaffold-path phase skeleton, scaffold-only checklist items).
+        "scaffold_mode":               "1" if GREENFIELD else "",
     }
 
 
@@ -308,10 +316,13 @@ def main() -> int:
         for p, why in skipped:
             print(f"  · {p}  ({why})")
 
-    # Surface unfilled "TODO (project maintainers)" callouts in any file we
-    # just touched. These mark sections the user MUST fill in.
+    # Surface unfilled "🛠 TODO (project maintainers)" callouts in any file we
+    # just touched. These mark sections the user MUST fill in. The 🛠 prefix
+    # discriminates real callouts from descriptive references to the convention
+    # in protocol docs (workflow.md, AGENTS.md, etc.) that talk about the
+    # mechanism without containing actual fill-me sections.
     todos: list[tuple[str, int]] = []
-    todo_pat = re.compile(r"TODO \(project maintainers\)")
+    todo_pat = re.compile(r"🛠 \*\*TODO \(project maintainers\)\*\*")
     for rel in written + merged:
         path = TARGET_ROOT / rel
         try:
@@ -323,10 +334,16 @@ def main() -> int:
             todos.append((rel, count))
     if todos:
         print()
-        print("harness: ⚠ project-maintainer TODO sections to fill in:")
-        for rel, n in todos:
-            print(f"  ! {rel}  ({n} block{'s' if n != 1 else ''})")
-        print("    (search each file for 'TODO (project maintainers)'.)")
+        if GREENFIELD:
+            print("harness: ⚠ project-maintainer TODO sections — DO NOT fill these manually.")
+            print("    Your scaffold task (started via `harness start`) walks you through them:")
+            for rel, n in todos:
+                print(f"  ! {rel}  ({n} block{'s' if n != 1 else ''})")
+        else:
+            print("harness: ⚠ project-maintainer TODO sections to fill in:")
+            for rel, n in todos:
+                print(f"  ! {rel}  ({n} block{'s' if n != 1 else ''})")
+            print("    (`harness start` will offer to fill these for you on the next coordinator session.)")
 
     return 0
 

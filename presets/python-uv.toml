@@ -11,6 +11,7 @@ test         = "uv run pytest"
 forbidden_without_brief = ["src", "tests"]
 cross_cutting           = ["src"]
 architecture_doc        = "docs/ARCHITECTURE.md"
+spec_dir                = "docs/specs/"
 
 [branch]
 feature_prefix = "feature/"

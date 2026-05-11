@@ -29,15 +29,15 @@ Only **one task** is in progress at a time. The protocol prevents starting a new
 Don't edit these files by hand unless you know exactly what you're doing. Use the helper:
 
 ```bash
-./harness start              # begin a new iteration (coordinator)
-./harness implement <id>     # resume an in-progress task (implementer)
-./harness status             # show CURRENT.md + active brief
-./harness end                # archive completed task → idle
-./harness remember "<text>"  # append to MEMORY.md
-./harness curate-memory      # quarterly cleanup
+harness start              # begin a new iteration (coordinator)
+harness implement <id>     # resume an in-progress task (implementer)
+harness status             # show CURRENT.md + active brief
+harness end                # archive completed task → idle
+harness remember "<text>"  # append to MEMORY.md
+harness curate-memory      # quarterly cleanup
 ```
 
-See [../harness](../harness).
+The `harness` CLI is installed globally (`~/.local/bin/harness` via `install.sh`); run `harness help` for the full subcommand reference.
 
 ## Maintenance discipline
 

@@ -23,11 +23,16 @@ This repo enforces a **coordinator + implementer** split.
 ### Coordinator role
 
 - Talks with the user to understand intent.
-- Runs the **triage** in [.harness/triage.md](.harness/triage.md) to decide whether the change is small (light path) or non-trivial (full path).
+- Runs the **triage** in [.harness/triage.md](.harness/triage.md) to choose one of three paths:
+  - **scaffold** — greenfield bootstrap (forced when `.harness/SCAFFOLD-PENDING` exists)
+  - **light** — small change (single phase, single commit)
+  - **full** — non-trivial change (multi-phase, fresh session per phase)
+- Applies the **spec gate** (triage Step 4) — some tasks also produce a standalone design spec at `{{paths_spec_dir}}<task-id>.md`.
+- Applies the **TODO gate** (workflow.md) — when `CONTRIBUTING.md` still has unfilled `🛠 TODO (project maintainers)` blocks, runs a `fill-contributing` prep task before the user's real request.
 - Writes a task brief to `.harness/active/<task-id>.md` using [.harness/templates/task-brief.md](.harness/templates/task-brief.md).
 - Updates [.harness/CURRENT.md](.harness/CURRENT.md) to `in_progress: <task-id>`.
 - Tells the user how to start the implementer session (which template to paste).
-- **Does NOT edit code.** Only writes inside `.harness/`.
+- **Does NOT edit code.** Only writes inside `.harness/` (and drafts spec *outlines* in the brief — the actual `docs/specs/<task-id>.md` file is written by the implementer in Phase 0).
 
 Open with the prompt in [.harness/templates/start-coordinator.md](.harness/templates/start-coordinator.md).
 
@@ -105,12 +110,12 @@ See [{{paths_architecture_doc}}]({{paths_architecture_doc}}) for the project lay
 ## Helper command
 
 ```
-./harness start                  # begin a new iteration (coordinator)
-./harness implement <task-id>    # resume an in-progress task (implementer)
-./harness status                 # show CURRENT.md + active brief
-./harness end                    # archive completed task → idle
-./harness remember "<text>"      # append entry to MEMORY.md
-./harness curate-memory          # quarterly MEMORY.md cleanup
+harness start                  # begin a new iteration (coordinator)
+harness implement <task-id>    # resume an in-progress task (implementer)
+harness status                 # show CURRENT.md + active brief
+harness end                    # archive completed task → idle
+harness remember "<text>"      # append entry to MEMORY.md
+harness curate-memory          # quarterly MEMORY.md cleanup
 ```
 
-See [harness](harness).
+Run `harness help` for the full subcommand reference. The CLI is installed globally at `~/.local/bin/harness` by `install.sh`; there is no project-local script.

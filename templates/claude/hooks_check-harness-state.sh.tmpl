@@ -32,7 +32,7 @@ if [[ "$status_line" == in_progress:* ]]; then
 harness: protocol state is broken — CURRENT.md says in_progress: $task_id
 but $brief does not exist.
 
-Resolve: either restore the brief, or run \`./harness end\` after manually
+Resolve: either restore the brief, or run \`harness end\` after manually
 writing a Final summary, or hand-edit .harness/CURRENT.md to idle.
 EOF
     exit 2
@@ -44,7 +44,7 @@ fi
 if [[ "$branch" == {{branch_feature_prefix}}* ]]; then
   cat <<EOF
 harness: heads up — you're on $branch but no task is in progress.
-Either run \`./harness start\` to enter the protocol, or this is an
+Either run \`harness start\` to enter the protocol, or this is an
 out-of-protocol change (mark accordingly in your PR).
 EOF
 fi

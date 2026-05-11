@@ -9,7 +9,8 @@ status: in_progress                 # in_progress | completed
 created: <YYYY-MM-DD>
 created_by: <user>                  # use the value of `git config user.name` so it matches commit author
 target_branch: {{branch_feature_prefix}}<task-id>
-path: light | full                  # from triage
+path: light | full | scaffold       # from triage (scaffold = greenfield bootstrap)
+# spec: {{paths_spec_dir}}<task-id>.md   # uncomment + fill iff spec gate fired
 ---
 
 # Goal
@@ -18,16 +19,99 @@ path: light | full                  # from triage
 
 # Background
 
-<Optional. Link any relevant issues, prior conversations, MEMORY.md entries.>
+<Optional. Link any relevant issues, prior conversations, MEMORY.md entries.
+ If this brief has a `spec:` field, link to it here.>
 
 <!--
 PHASES
 - For LIGHT path: keep just one phase, one commit point, no session boundary marker.
 - For FULL path: 2–4 phases. Each phase has a checklist, a `> ✋ Commit point`,
   and a `> 🛑 New session boundary` (or `> ↪ OK to continue same session` if justified).
+- For SCAFFOLD path: use the four pre-named phases in the scaffold-only block
+  below (rendered automatically when harness was init'd with --greenfield).
+  DO NOT invent new phases — the structure is fixed so future scaffold tasks
+  are predictable.
+- For SPEC-BEARING brief (any path): prepend a Phase 0 whose only work is
+  drafting the spec file at the `spec:` frontmatter path. Outline:
+    - [ ] Draft {{paths_spec_dir}}<task-id>.md (Goal / Constraints / Design
+          decisions / Alternatives / Risks / Open questions)
+    - [ ] Walk user through design decisions; iterate on feedback
+    > ✋ Commit point: `docs: spec for <task-id>`
+    > 🛑 New session boundary
+  Every subsequent Phase (1, 2, ...) MUST start by re-reading the spec file —
+  the implementer template's step 4 enforces this. The spec is the design
+  authority; the brief is the execution checklist.
 -->
 
-# Phase 1: <short name>
+{{#scaffold_mode}}<!-- ====================================================================
+SCAFFOLD-PATH SKELETON — emitted only when harness was init'd with --greenfield
+(or auto-detected). Coordinator MUST fill the Architecture decisions table
+before any code is written. The four phases below are pre-named; their
+internal checklists may be tweaked but the phase names / order / boundaries
+must not change.
+==================================================================== -->
+
+# Architecture decisions
+
+| Decision          | Value                                                |
+|-------------------|------------------------------------------------------|
+| Language          | <e.g. Python 3.12 / TypeScript / Rust 1.79>           |
+| Runtime           | <e.g. CPython / Node.js 22 / native binary>           |
+| Package manager   | <e.g. uv / pnpm / cargo / go modules>                 |
+| Test runner       | <e.g. pytest / vitest / cargo test>                   |
+| Formatter         | <e.g. ruff format / prettier / rustfmt>               |
+| CI provider       | <e.g. GitHub Actions / GitLab CI / none>              |
+| License           | <e.g. MIT / Apache-2.0 / proprietary>                 |
+| Deploy target     | <e.g. Docker image / PyPI / npm / standalone binary>  |
+
+# Phase 1: Architecture decisions
+
+- [ ] Confirm the Architecture decisions table above with the user
+- [ ] Write `{{paths_architecture_doc}}` stub describing intended layout
+
+> ✋ Commit point: `chore: record architecture decisions`
+> Verification before commit: `{{verify_format}}` clean, `{{verify_test}}` green.
+
+> 🛑 New session boundary
+
+# Phase 2: Directory skeleton + manifest
+
+- [ ] Create `src/` and `tests/` (or language-appropriate equivalents)
+- [ ] Create the language manifest (`pyproject.toml` / `package.json` / `Cargo.toml` / ...)
+- [ ] Create `.gitignore` appropriate for the language
+- [ ] Replace stub README with a proper project README skeleton
+
+> ✋ Commit point: `chore: initialize project skeleton`
+> Verification before commit: `{{verify_format}}` clean, `{{verify_test}}` green.
+
+> 🛑 New session boundary
+
+# Phase 3: First runnable module + verify wiring
+
+- [ ] Implement a trivial entry point (e.g. main function that prints a hello)
+- [ ] Add one passing test that exercises the entry point
+- [ ] Confirm `{{verify_format}}` and `{{verify_test}}` actually execute successfully
+- [ ] If the preset commands don't match reality, update `harness.config.toml` `[verify]` to the real commands
+
+> ✋ Commit point: `feat: first runnable module`
+> Verification before commit: `{{verify_format}}` clean, `{{verify_test}}` green.
+
+> 🛑 New session boundary
+
+# Phase 4: CONTRIBUTING fill + CI + scaffold close-out
+
+- [ ] Walk user through each `🛠 TODO (project maintainers)` block in `CONTRIBUTING.md`:
+      detect candidates from manifest/CI/formatter configs, present options,
+      confirm with user, write confirmed content, delete the callout line
+- [ ] Add a CI workflow that runs `{{verify_format_check}}` and `{{verify_test}}`
+      on every push (or note "no CI" if the user opted out in Phase 1 decisions)
+- [ ] **Remove `.harness/SCAFFOLD-PENDING`** to flip the project back to normal triage
+
+> ✋ Commit point: `chore: complete project scaffold`
+> Verification before commit: `{{verify_format}}` clean, `{{verify_test}}` green.
+
+> 🛑 New session boundary
+{{/scaffold_mode}}{{^scaffold_mode}}# Phase 1: <short name>
 
 - [ ] <concrete action 1>
 - [ ] <concrete action 2>
@@ -47,7 +131,7 @@ PHASES
 
 > 🛑 New session boundary
 
-<!-- repeat phases as needed -->
+<!-- repeat phases as needed -->{{/scaffold_mode}}
 
 # Open questions
 
