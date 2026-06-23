@@ -52,7 +52,7 @@ Open with the prompt in [.harness/templates/start-implementer.md](.harness/templ
 ## Language
 
 - **Conversation mirrors the user.** Always reply in whatever language the user writes in (`[language].conversation = "auto"`).
-- **Repo artifacts use the configured language.** Files written into the repo (specs, task briefs, docs) use `[language].artifacts`. Before writing the first such artifact, if `artifacts` is unset, ask the user which language to use and persist it with `harness lang <code>` (e.g. `harness lang en`). Once set, write artifacts in that language without asking again. The two settings are independent: a team may converse in one language and keep repo docs in another.
+- **Repo artifacts use the configured language.** Files written into the repo (specs, task briefs, docs) use `[language].artifacts`. If `artifacts` is unset, **ask the user explicitly** which language to use and persist it with `harness lang <code>` (e.g. `harness lang en`) — **never infer it from the conversation language or assume English; it is a separate, must-ask choice.** Once set, write artifacts in that language without asking again. The two settings are independent: a team may converse in one language and keep repo docs in another.
 
 ---
 
