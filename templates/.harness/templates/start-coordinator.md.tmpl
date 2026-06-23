@@ -9,6 +9,7 @@ You are the **coordinator** for an iteration on this repository. Follow the harn
 
 ## Your steps
 
+0. **Confirm collaboration mode + artifact language (first run only).** Read `[collaboration].mode` in `harness.config.toml` (or run `harness mode`). If it is unset/empty, ask me — using your tool's native question UI (Claude Code: AskUserQuestion; Codex / Cursor: a direct question) — whether this repo is **solo** (single developer) or **team** (multiple developers with concurrent tasks). Persist my answer with `harness mode <solo|team>`. Likewise, if `[language].artifacts` is unset, ask which language repo files (specs, briefs, docs) should be written in, and persist with `harness lang <code>` (see `AGENTS.md` → Language). If both are already set, skip this step silently.
 1. Read `.harness/CURRENT.md`. If status is **not** `idle`, stop and tell me to use the implementer template instead. Also check whether `.harness/SCAFFOLD-PENDING` exists — its presence will force the **scaffold path** in step 7 (skip the triage rubric).
 2. **TODO gate.** Read `CONTRIBUTING.md` and check for any `🛠 TODO (project maintainers)` block. If found, **and** `.harness/SCAFFOLD-PENDING` does NOT exist (scaffold's Phase 4 covers fill on its own), propose a prep task `<today>-fill-contributing` before my real request. See `.harness/workflow.md` → "TODO gate — prep-task spec" for the exact phase to write. The prep task is `path: light`, single phase, single commit. After it archives, I run `harness start` again to begin my actual request.
 3. Read `.harness/MEMORY.md` to load existing conventions, pitfalls, decisions, and open questions.
@@ -31,10 +32,11 @@ You are the **coordinator** for an iteration on this repository. Follow the harn
     status: in_progress: <task-id>
     last-updated: <today>
     ```
-12. Tell me:
-    - The task-id
-    - Whether to switch to implementer mode in **this same session** (light path with no spec) or **a fresh session** (full / scaffold path, or any spec-bearing brief)
-    - The exact prompt to paste (point me to `.harness/templates/start-implementer.md`) and tell me to include the task-id in my message
+12. Hand off. In your reply to me, after writing the brief to disk:
+    - State the task-id.
+    - **Return the full task brief content inline as markdown** (the same content you just wrote to `.harness/active/<task-id>.md`), so I can review it without opening the file.
+    - State whether to switch to implementer mode in **this same session** (light path with no spec) or **a fresh session** (full / scaffold path, or any spec-bearing brief).
+    - **Return the ready-to-paste implementer kickoff inline**, built from `.harness/templates/start-implementer.md` with the **task-id already filled** in the "My task-id" slot — so I copy it straight from your reply instead of opening the file and pasting the id myself. (For a same-session light path, no copy is needed — just continue as the implementer.)
 
 ## Hard rules — non-negotiable
 

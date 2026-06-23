@@ -12,9 +12,9 @@ Language-agnostic. Three AI-platform integrations + GitHub. Designed so target r
 - **Three triage paths** — coordinator routes each request to **scaffold** (greenfield bootstrap), **light** (small change), or **full** (non-trivial change). Greenfield is auto-detected at `harness init` (no language manifest + no source dirs + no architecture doc) or forced via `--greenfield`.
 - **TODO gate** — if `CONTRIBUTING.md` still has unfilled `🛠 TODO (project maintainers)` blocks, the coordinator first runs a `fill-contributing` prep task that scans manifest/CI/formatter configs, proposes candidate answers, and writes only after you confirm. No surprise auto-fills.
 - **Spec gate** — for tasks that span cross-cutting dirs, introduce new external dependencies, change external interfaces, or affect the data model, the coordinator decides whether to produce a standalone design spec at `docs/specs/<task-id>.md` (in addition to the task brief). Phase 0 of the brief writes the spec; subsequent phases use it as the design authority.
-- **State on disk** — `.harness/CURRENT.md` is the single source of truth; sessions can crash and resume with no information loss. `.harness/SCAFFOLD-PENDING` is the marker that drives the scaffold gate.
+- **State on disk** — task state lives in `.harness/` files, so sessions can crash and resume with no information loss. `.harness/CURRENT.md` is **per-clone local state** (which task this working copy is driving; git-ignored); the shared truth across a team is the committed `.harness/active/` brief set. `.harness/SCAFFOLD-PENDING` is the marker that drives the scaffold gate.
 - **Cross-task memory** — `.harness/MEMORY.md` accumulates conventions, pitfalls, and decisions over time, surfaced to every new session.
-- **Three AI-platform hooks** — Claude Code (slash command + `SessionStart` / `PreToolUse` hooks), Cursor (`alwaysApply` rule), Codex (MCP skill).
+- **Three AI-platform hooks** — Claude Code (slash command + `SessionStart` / `PreToolUse` hooks), Cursor (`alwaysApply` rule), Codex (MCP skill + `SessionStart` / `PreToolUse` hooks).
 - **GitHub PR template** with a required protocol-status field.
 
 ---
@@ -177,7 +177,9 @@ In your **terminal**:
 
 ```bash
 harness implement <task-id>    # resume / enter the implementer session (also prints a prompt to paste into AI tool)
-harness status                 # show CURRENT.md + the active brief
+harness status                 # show CURRENT.md + the active brief (+ team view of all active briefs in team mode)
+harness mode [solo|team]       # show or set the collaboration mode
+harness lang [<bcp47>]         # show or set the language for repo artifacts (specs/briefs/docs)
 harness end                    # archive a finished task → CURRENT.md back to idle
 harness remember "<text>"      # append a convention/pitfall/decision to MEMORY.md
 harness curate-memory          # quarterly MEMORY.md cleanup (opens it in $EDITOR)
@@ -223,8 +225,9 @@ CommonHarness sorts files in the target repo into three layers, and each behaves
 
 | Layer              | Files                                                                                       | Behavior on `harness init --force` / future `harness upgrade` |
 |--------------------|---------------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| **Managed**        | `AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/*`, `.cursor/rules/harness.mdc`, `mcp/skills/harness/SKILL.md` | Overwritten cleanly from upstream templates                   |
+| **Managed**        | `AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/{commands,hooks}/*`, `.cursor/rules/harness.mdc`, `mcp/skills/harness/SKILL.md`, `.codex/hooks/check-harness-state.sh` | Overwritten cleanly from upstream templates                   |
 | **Fenced fragment**| `CONTRIBUTING.md`, `CLAUDE.md`, `.github/PULL_REQUEST_TEMPLATE.md`                          | **Marker-aware merge**: only the `<!-- harness:begin --> … <!-- harness:end -->` block is replaced; everything outside (your business content) is preserved |
+| **Hooks-merge JSON**| `.claude/settings.json`, `.codex/hooks.json`                                              | **Only the `hooks` key is replaced** from upstream; every other top-level key you add (`permissions`, `env`, …) is preserved — even under `--force` |
 | **Owned**          | `.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*` | Never touched. The scaffold marker is created by `--greenfield` init and removed by `harness end` of a `path: scaffold` brief. Spec files are created by the implementer in Phase 0. |
 
 This is what makes the protocol upgradable without clobbering project-specific work.

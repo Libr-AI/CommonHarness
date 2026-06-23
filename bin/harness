@@ -95,6 +95,13 @@ cfg_get() {
   python3 "$HARNESS_HOME/bin/_cfg_get.py" "$CONFIG_FILE" "$key"
 }
 
+# Write a single dotted key to harness.config.toml (comment-preserving).
+# Usage: cfg_set collaboration.mode team
+cfg_set() {
+  local key="$1" value="$2"
+  python3 "$HARNESS_HOME/bin/_cfg_set.py" "$CONFIG_FILE" "$key" "$value"
+}
+
 current_status() {
   # Prints "idle" or "in_progress: <id>". The status value may itself contain
   # colons (the in_progress form does), so strip only the leading "status: "
@@ -137,6 +144,8 @@ Workflow commands:
   start                              Begin a new iteration (coordinator session)
   implement [<id>]                   Resume an in-progress task (implementer session)
   status                             Show CURRENT.md and the active brief
+  mode [solo|team]                   Show or set the collaboration mode
+  lang [<bcp47>]                     Show or set the artifact (repo docs) language
   end                                Archive a completed task → idle
   remember "<text>"                  Append an entry to MEMORY.md
   curate-memory                      Quarterly MEMORY.md cleanup
@@ -414,6 +423,55 @@ cmd_status() {
       exit 1
     fi
   fi
+
+  # Team mode: show every active brief across the team (the shared truth),
+  # not just this clone's current task. CURRENT.md above is per-clone local.
+  if [[ "$(cfg_get collaboration.mode)" == "team" ]]; then
+    echo
+    echo "=== Team view: active briefs (.harness/active/) ==="
+    local found=0 f bid status owner branch
+    for f in "$ACTIVE_DIR"/*.md; do
+      [[ -e "$f" ]] || continue
+      found=1
+      bid="$(basename "$f" .md)"
+      status="$(awk -F': *' '/^status:/ {print $2; exit}' "$f")"
+      owner="$(awk -F': *' '/^created_by:/ {print $2; exit}' "$f")"
+      branch="$(awk -F': *' '/^target_branch:/ {print $2; exit}' "$f")"
+      printf '  %-32s status=%-12s owner=%-12s branch=%s\n' \
+        "$bid" "${status:-?}" "${owner:-?}" "${branch:-?}"
+    done
+    [[ "$found" -eq 0 ]] && echo "  (none)"
+  fi
+}
+
+cmd_mode() {
+  require_initialized
+  local choice="${1:-}"
+  if [[ -z "$choice" ]]; then
+    local cur
+    cur="$(cfg_get collaboration.mode)"
+    echo "collaboration mode: ${cur:-unset (defaults to solo; will be confirmed on next \`harness start\`)}"
+    return 0
+  fi
+  case "$choice" in
+    solo|team) ;;
+    *) err "invalid mode '$choice' (expected: solo | team)" ;;
+  esac
+  cfg_set collaboration.mode "$choice"
+  echo "harness: collaboration mode set to '$choice'."
+}
+
+cmd_lang() {
+  require_initialized
+  local code="${1:-}"
+  if [[ -z "$code" ]]; then
+    local cur
+    cur="$(cfg_get language.artifacts)"
+    echo "artifact language: ${cur:-unset (will be confirmed on first artifact write)}"
+    return 0
+  fi
+  cfg_set language.artifacts "$code"
+  echo "harness: artifact language set to '$code'."
 }
 
 cmd_end() {
@@ -553,6 +611,8 @@ case "${1:-help}" in
   start)          shift; cmd_start "$@" ;;
   implement)      shift; cmd_implement "$@" ;;
   status)         shift; cmd_status "$@" ;;
+  mode)           shift; cmd_mode "$@" ;;
+  lang)           shift; cmd_lang "$@" ;;
   end)            shift; cmd_end "$@" ;;
   remember)       shift; cmd_remember "$@" ;;
   curate-memory)  shift; cmd_curate_memory "$@" ;;

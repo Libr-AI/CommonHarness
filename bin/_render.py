@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import re
@@ -58,6 +59,8 @@ ROUTES: list[tuple[str, str, str | None, bool]] = [
 
     # Codex / MCP
     ("codex/skills_harness_SKILL.md.tmpl",                          "mcp/skills/harness/SKILL.md",                "codex_mcp",    False),
+    ("codex/hooks.json.tmpl",                                       ".codex/hooks.json",                          "codex_mcp",    False),
+    ("codex/hooks_check-harness-state.sh.tmpl",                     ".codex/hooks/check-harness-state.sh",        "codex_mcp",    True),
 
     # GitHub
     ("github/PULL_REQUEST_TEMPLATE.md.tmpl",                        ".github/PULL_REQUEST_TEMPLATE.md",           "github_pr",    False),
@@ -68,6 +71,15 @@ ROUTES: list[tuple[str, str, str | None, bool]] = [
 OWNED_PATHS = {
     ".harness/CURRENT.md",
     ".harness/MEMORY.md",
+}
+
+# JSON outputs where the harness owns ONLY the `hooks` key. When these already
+# exist, re-rendering replaces `hooks` and leaves every other top-level key
+# (permissions, env, …) untouched — regardless of FORCE. This keeps
+# `harness upgrade` from clobbering project-added settings.
+JSON_HOOKS_OWNED = {
+    ".claude/settings.json",
+    ".codex/hooks.json",
 }
 
 
@@ -104,6 +116,8 @@ def build_vars(preset: dict) -> dict[str, str]:
     paths  = preset.get("paths", {})
     branch = preset.get("branch", {})
     integ  = preset.get("integrations", {})
+    collab = preset.get("collaboration", {})
+    lang   = preset.get("language", {})
 
     fmt        = verify.get("format", "")
     fmt_check  = verify.get("format_check", "")
@@ -150,6 +164,9 @@ def build_vars(preset: dict) -> dict[str, str]:
         "branch_dev":                  dev_branch,
         # Conditional flag for {{#has_dev_branch}}…{{/has_dev_branch}}.
         "has_dev_branch":              "1" if dev_branch else "",
+
+        "collaboration_mode":          collab.get("mode", ""),
+        "language_artifacts":          lang.get("artifacts", ""),
 
         "int_claude_code":             bf("claude_code"),
         "int_cursor":                  bf("cursor"),
@@ -225,6 +242,43 @@ def marker_merge(existing: str, rendered: str) -> str:
     return existing[:e_start] + new_block + existing[e_end:]
 
 
+# --- JSON hooks merge --------------------------------------------------------
+#
+# For JSON_HOOKS_OWNED files, harness owns only the `hooks` key. Re-render
+# replaces `hooks` from the rendered template and preserves every other
+# top-level key the project added.
+
+def merge_hooks_json(existing: str, rendered: str) -> str:
+    """Return `existing` JSON with its `hooks` key replaced by rendered's.
+    Raises json.JSONDecodeError if either side is not valid JSON."""
+    existing_obj = json.loads(existing)
+    rendered_obj = json.loads(rendered)
+    existing_obj["hooks"] = rendered_obj.get("hooks", existing_obj.get("hooks"))
+    return json.dumps(existing_obj, indent=2) + "\n"
+
+
+# --- .gitignore --------------------------------------------------------------
+
+def ensure_gitignore_entry(path: pathlib.Path, entry: str) -> None:
+    """Append `entry` to the .gitignore at `path` iff not already present.
+    Creates the file if absent; preserves existing content."""
+    existing_lines: list[str] = []
+    if path.exists():
+        text = path.read_text(encoding="utf-8")
+        existing_lines = text.splitlines()
+        if entry in (ln.strip() for ln in existing_lines):
+            return
+    else:
+        text = ""
+
+    block = f"# harness: per-developer local state (not shared via git)\n{entry}\n"
+    if text and not text.endswith("\n"):
+        text += "\n"
+    if text:
+        text += "\n"
+    path.write_text(text + block, encoding="utf-8")
+
+
 # --- main --------------------------------------------------------------------
 
 def is_integration_enabled(preset: dict, flag: str) -> bool:
@@ -261,6 +315,24 @@ def main() -> int:
         if output_path.exists():
             existing = output_path.read_text(encoding="utf-8")
 
+            # JSON hooks-owned file → merge only the `hooks` key, preserving
+            # all other project-added keys. Applies regardless of FORCE.
+            if output_rel in JSON_HOOKS_OWNED:
+                try:
+                    new_text = merge_hooks_json(existing, rendered)
+                except json.JSONDecodeError:
+                    skipped.append((
+                        output_rel,
+                        "exists but is not valid JSON — fix it by hand or remove the file",
+                    ))
+                    continue
+                if new_text == existing:
+                    skipped.append((output_rel, "hooks already up to date"))
+                    continue
+                output_path.write_text(new_text, encoding="utf-8")
+                merged.append(output_rel)
+                continue
+
             # Fragment template + target with markers → marker-aware merge.
             # Safe regardless of FORCE: only the in-fence region is replaced.
             if template_has_fence and has_markers(existing):
@@ -293,6 +365,11 @@ def main() -> int:
             mode = output_path.stat().st_mode
             output_path.chmod(mode | 0o111)
         written.append(output_rel)
+
+    # Ensure CURRENT.md is git-ignored: it is per-clone local state (which task
+    # THIS working copy is driving), not shared truth. The shared truth is the
+    # committed .harness/active/ brief set. Idempotent; preserves existing entries.
+    ensure_gitignore_entry(TARGET_ROOT / ".gitignore", ".harness/CURRENT.md")
 
     # Ensure state directories exist with .gitkeep.
     for sub in (".harness/active", ".harness/archive"):

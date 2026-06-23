@@ -29,5 +29,19 @@ cursor      = {{int_cursor}}
 codex_mcp   = {{int_codex_mcp}}
 github_pr   = {{int_github_pr}}
 
+[collaboration]
+# "" = unset → the coordinator confirms solo/team on first `harness start`.
+# "solo" = single developer (default behavior). "team" = multiple developers
+# with concurrent tasks; `harness status` shows the team view of active briefs.
+# CURRENT.md is per-clone local state in BOTH modes (it is git-ignored).
+mode = "{{collaboration_mode}}"
+
+[language]
+# Conversation language always mirrors the user ("auto"). `artifacts` is the
+# language for files written into the repo (specs, briefs, docs). "" = unset →
+# confirmed on first artifact write; thereafter a BCP-47 code, e.g. "en" / "zh-CN".
+conversation = "auto"
+artifacts    = "{{language_artifacts}}"
+
 [presets]
 preset = "{{preset}}"
