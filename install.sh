@@ -91,7 +91,8 @@ Verify:
 Use:
 
   cd /path/to/your/project
-  harness init --preset python-uv
+  harness init            # prompts for a preset; init then auto-detects your
+                          # stack and corrects [verify]/[paths] to match
 
 Upgrade later (example — replace v0.4.0 with the next release):
 

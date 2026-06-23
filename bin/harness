@@ -129,6 +129,12 @@ cfg_set() {
   python3 "$HARNESS_HOME/bin/_cfg_set.py" "$CONFIG_FILE" "$key" "$value"
 }
 
+# Like cfg_set but writes the value verbatim (TOML arrays / booleans).
+cfg_set_raw() {
+  local key="$1" value="$2"
+  python3 "$HARNESS_HOME/bin/_cfg_set.py" --raw "$CONFIG_FILE" "$key" "$value"
+}
+
 current_status() {
   # Prints "idle" or "in_progress: <id>". The status value may itself contain
   # colons (the in_progress form does), so strip only the leading "status: "
@@ -317,11 +323,29 @@ EOF
     echo "harness: detected prior agent context → wrote $ADOPT_MARKER (adoption task pending)."
   fi
 
+  # Auto-detect the real stack and correct [verify] / [paths] — overriding a
+  # preset that doesn't fit (e.g. python-uv chosen for a Node project). Only
+  # confidently-detected keys are written; the rest keep the preset's value.
+  local detected applied=0 dkey dval
+  detected="$(python3 "$HARNESS_HOME/bin/_detect_stack.py" "$TARGET_ROOT" 2>/dev/null || true)"
+  if [[ -n "$detected" ]]; then
+    while IFS='=' read -r dkey dval; do
+      [[ -z "$dkey" ]] && continue
+      if [[ "$dkey" == paths.* ]]; then
+        cfg_set_raw "$dkey" "$dval"
+      else
+        cfg_set "$dkey" "$dval"
+      fi
+      applied=1
+    done <<< "$detected"
+    [[ "$applied" == 1 ]] && echo "harness: detected the project stack → adjusted [verify]/[paths] in harness.config.toml (review on first \`harness start\`)."
+  fi
+
   echo
   echo "harness: init complete."
   echo
   echo "Next steps:"
-  echo "  1. Review harness.config.toml — adjust [paths] and [verify] for your project."
+  echo "  1. Review harness.config.toml — [verify]/[paths] were auto-detected from your stack; tweak if anything's off."
   echo "  2. Read AGENTS.md to understand the two-session protocol."
   if [[ "$greenfield" == "true" ]]; then
     echo "  3. Run \`harness start\` — your first task is a scaffold-path bootstrap that"

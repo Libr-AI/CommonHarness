@@ -1,0 +1,27 @@
+# Preset: node
+# A JavaScript/TypeScript project. Package manager, test runner, and formatter
+# vary, so these are sensible defaults — `harness init` auto-detects the real
+# package manager (npm/pnpm/yarn) and scripts and corrects [verify]/[paths].
+# Used by `harness init --preset node`.
+
+[verify]
+format       = "npm run format"
+format_check = "npm run format -- --check"
+test         = "npm run test"
+
+[paths]
+forbidden_without_brief = ["src", "app", "tests"]
+cross_cutting           = ["src", "app"]
+architecture_doc        = "docs/ARCHITECTURE.md"
+spec_dir                = "docs/specs/"
+
+[branch]
+feature_prefix = "feature/"
+main_branch    = "main"
+dev_branch     = "dev"
+
+[integrations]
+claude_code = true
+cursor      = true
+codex_mcp   = true
+github_pr   = true

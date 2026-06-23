@@ -132,10 +132,15 @@ In your **terminal**, from the project's repo root:
 
 ```bash
 cd /path/to/your/project
-harness init --preset python-uv
+harness init                       # prompts for a preset; pick the one matching your stack
+# or pass it directly, e.g.:
+#   harness init --preset python-uv      (Python + uv + ruff + pytest)
+#   harness init --preset node           (Node + npm/pnpm/yarn, auto-detected)
 ```
 
 That writes `AGENTS.md`, `CONTRIBUTING.md` (with TODO sections), `harness.config.toml`, the `.harness/` state directory, and the AI integrations. The CLI prints "Next steps" telling you what to do next.
+
+> **The preset is just a starting point.** `harness init` then **auto-detects your real stack** (from `package.json` / `pyproject.toml` / lockfiles / source dirs) and corrects `[verify]` and `[paths]` accordingly — so picking the "wrong" preset still yields a config that matches your project. Run `harness init` with no `--preset` to see the list of available presets.
 
 **Greenfield projects.** If you're initializing into an empty repo (no language manifest, no source dirs, no architecture doc), `harness init` auto-detects this and offers to bootstrap with the **scaffold path**. You can also force the decision:
 

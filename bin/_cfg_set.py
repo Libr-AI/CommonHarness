@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Set a single dotted key (section.key) to a string value in a config file.
+"""Set a single dotted key (section.key) in a config file.
 
-Usage: _cfg_set.py <config_path> <section.key> <value>
+Usage: _cfg_set.py [--raw] <config_path> <section.key> <value>
 
 Line-based and comment-preserving: only the target line is replaced (or
-inserted). Used by `harness mode` / `harness lang` so the user never hand-edits
-harness.config.toml. Values are always written as quoted TOML strings.
+inserted). Used by `harness mode` / `harness lang` / `harness init` so the user
+never hand-edits harness.config.toml. By default the value is written as a
+quoted TOML string; with --raw it is written verbatim (for arrays / booleans,
+e.g. `["src", "tests"]`).
 """
 
 from __future__ import annotations
@@ -19,9 +21,9 @@ def _is_section_header(line: str) -> bool:
     return s.startswith("[") and s.endswith("]")
 
 
-def set_key(text: str, section: str, key: str, value: str) -> str:
+def set_key(text: str, section: str, key: str, value: str, raw: bool = False) -> str:
     lines = text.splitlines()
-    new_line = f'{key} = "{value}"'
+    new_line = f"{key} = {value}" if raw else f'{key} = "{value}"'
     header = f"[{section}]"
     trailing_nl = "\n" if text.endswith("\n") or text == "" else ""
 
@@ -33,7 +35,7 @@ def set_key(text: str, section: str, key: str, value: str) -> str:
             break
 
     if sec_start is None:
-        block = f"[{section}]\n{key} = \"{value}\""
+        block = f"[{section}]\n{new_line}"
         if not lines:
             return block + "\n"
         body = "\n".join(lines).rstrip("\n")
@@ -63,17 +65,22 @@ def set_key(text: str, section: str, key: str, value: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        sys.stderr.write("usage: _cfg_set.py <config_path> <section.key> <value>\n")
+    args = sys.argv[1:]
+    raw = False
+    if args and args[0] == "--raw":
+        raw = True
+        args = args[1:]
+    if len(args) != 3:
+        sys.stderr.write("usage: _cfg_set.py [--raw] <config_path> <section.key> <value>\n")
         return 2
-    path, dotted, value = sys.argv[1], sys.argv[2], sys.argv[3]
+    path, dotted, value = args
     if "." not in dotted:
         sys.stderr.write("_cfg_set.py: key must be of the form section.key\n")
         return 2
     section, key = dotted.split(".", 1)
     p = pathlib.Path(path)
     text = p.read_text(encoding="utf-8") if p.exists() else ""
-    p.write_text(set_key(text, section, key, value), encoding="utf-8")
+    p.write_text(set_key(text, section, key, value, raw=raw), encoding="utf-8")
     return 0
 
 
