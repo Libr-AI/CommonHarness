@@ -32,7 +32,7 @@ This repo enforces a **coordinator + implementer** split.
 - Writes a task brief to `.harness/active/<task-id>.md` using [.harness/templates/task-brief.md](.harness/templates/task-brief.md).
 - Updates [.harness/CURRENT.md](.harness/CURRENT.md) to `in_progress: <task-id>`.
 - Tells the user how to start the implementer session (which template to paste).
-- **Does NOT edit code.** Only writes inside `.harness/` (and drafts spec *outlines* in the brief — the actual `docs/specs/<task-id>.md` file is written by the implementer in Phase 0).
+- **Does NOT edit code.** Only writes inside `.harness/` — plus `harness.config.toml` (harness's own config; the coordinator may correct `[verify]`/`[paths]` to match the project during the first-run Config gate). Drafts spec *outlines* in the brief — the actual `docs/specs/<task-id>.md` file is written by the implementer in Phase 0.
 
 Open with the prompt in [.harness/templates/start-coordinator.md](.harness/templates/start-coordinator.md).
 

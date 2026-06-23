@@ -140,7 +140,7 @@ harness init                       # prompts for a preset; pick the one matching
 
 That writes `AGENTS.md`, `CONTRIBUTING.md` (with TODO sections), `harness.config.toml`, the `.harness/` state directory, and the AI integrations. The CLI prints "Next steps" telling you what to do next.
 
-> **The preset is just a starting point.** `harness init` then **auto-detects your real stack** (from `package.json` / `pyproject.toml` / lockfiles / source dirs) and corrects `[verify]` and `[paths]` accordingly — so picking the "wrong" preset still yields a config that matches your project. Run `harness init` with no `--preset` to see the list of available presets.
+> **The preset is just a starting point.** On the first `harness start`, the **coordinator inspects your actual project** (manifest, scripts, source layout) and proposes corrected `[verify]` and `[paths]` for you to confirm — so picking the "wrong" preset still converges on a config that matches your project. Run `harness init` with no `--preset` to see the list of available presets.
 
 **Greenfield projects.** If you're initializing into an empty repo (no language manifest, no source dirs, no architecture doc), `harness init` auto-detects this and offers to bootstrap with the **scaffold path**. You can also force the decision:
 

@@ -40,6 +40,17 @@ Prep-task brief: `active/<today>-fill-contributing.md`, frontmatter `path: light
 
 After this prep task archives, `harness start` again to begin the user's original request.
 
+## Config gate — match harness.config.toml to the real project
+
+Run in coordinator step 0 (first run, or whenever `[verify]`/`[paths]` look like stale preset defaults). The `--preset` only seeds the config; it does not know your project. **Detection is the agent's job, not the CLI's** — CommonHarness ships no project-structure heuristics; the coordinator (which can read any layout) does it:
+
+1. **Inspect the repo.** Language manifest + lockfile (`package.json` + `pnpm-lock.yaml`/`yarn.lock`/`package-lock.json` → pnpm/yarn/npm; `pyproject.toml` → uv; `Cargo.toml`; `go.mod`), the scripts it defines, and the actual source/test directories.
+2. **Compare** against `[verify]` (format / format_check / test) and `[paths]` (forbidden_without_brief / cross_cutting) in `harness.config.toml`.
+3. **Propose corrected values and confirm with the user.** Example: "Detected Node + pnpm + vitest + prettier, source in `app/`. Set `verify.test = pnpm run test`, `verify.format_check = pnpm exec prettier --check .`, `paths = [app, tests]`?"
+4. **Edit `harness.config.toml`** with the confirmed values. This is the only file outside `.harness/` the coordinator may write.
+
+This keeps the CLI universal: all stack-specific knowledge lives here, in the agent's reasoning, applied per project.
+
 ## Adoption gate — brownfield context import
 
 Triggered in coordinator step 1 when `.harness/ADOPT-PENDING` exists (written by `harness init` on a brownfield project that already had agent context — a `MEMORY.md`, a `docs/` folder, or agent instruction docs). The marker lists the detected `sources:` and any `conflict:` files. Run this as the FIRST task, before the user's request. Confirm each step with the user; **never overwrite without confirmation.**
