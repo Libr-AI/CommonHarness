@@ -11,6 +11,8 @@ Language-agnostic. Three AI-platform integrations + GitHub. Designed so target r
 - **Two-session protocol** — coordinator session writes a task brief at `.harness/active/<id>.md`; implementer session executes one phase at a time, stops at every commit point and session boundary.
 - **Three triage paths** — coordinator routes each request to **scaffold** (greenfield bootstrap), **light** (small change), or **full** (non-trivial change). Greenfield is auto-detected at `harness init` (no language manifest + no source dirs + no architecture doc) or forced via `--greenfield`.
 - **TODO gate** — if `CONTRIBUTING.md` still has unfilled `🛠 TODO (project maintainers)` blocks, the coordinator first runs a `fill-contributing` prep task that scans manifest/CI/formatter configs, proposes candidate answers, and writes only after you confirm. No surprise auto-fills.
+- **Adoption gate** — installing into a brownfield project that already has agent context (a `MEMORY.md`, a `docs/` folder, or agent instruction docs)? `harness init` detects it and writes `.harness/ADOPT-PENDING`; the first `harness start` runs an adoption task that distils prior context into `.harness/MEMORY.md` (linking anything not distilled — nothing is lost), relocates any architecture doc into `docs/ARCHITECTURE.md`, rebuilds prior task history into `.harness/archive/`, and reconciles same-name file conflicts. Gated by `[adoption] on_init`.
+- **Architecture doc as global basis** — `docs/ARCHITECTURE.md` (path configurable) is read at every entry point — coordinator, implementer, the Cursor rule, and the SessionStart hook — as the project map / "change X → which files" lookup. On scaffold, the coordinator asks whether you'll provide one and records the choice (`harness arch`).
 - **Spec gate** — for tasks that span cross-cutting dirs, introduce new external dependencies, change external interfaces, or affect the data model, the coordinator decides whether to produce a standalone design spec at `docs/specs/<task-id>.md` (in addition to the task brief). Phase 0 of the brief writes the spec; subsequent phases use it as the design authority.
 - **State on disk** — task state lives in `.harness/` files, so sessions can crash and resume with no information loss. `.harness/CURRENT.md` is **per-clone local state** (which task this working copy is driving; git-ignored); the shared truth across a team is the committed `.harness/active/` brief set. `.harness/SCAFFOLD-PENDING` is the marker that drives the scaffold gate.
 - **Cross-task memory** — `.harness/MEMORY.md` accumulates conventions, pitfalls, and decisions over time, surfaced to every new session.
@@ -42,7 +44,7 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 In your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.4.0/install.sh | bash
 ```
 
 When this finishes, the `harness` CLI is at `~/.local/bin/harness` (symlinked through `~/.commonharness/current/`).
@@ -71,7 +73,7 @@ echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin"
 harness --version
 ```
 
-Expected: `harness 0.3.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
+Expected: `harness 0.4.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
 
 ### Pin to a different version
 
@@ -93,16 +95,16 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.
 ### Manual install (if you don't want curl-pipe-bash)
 
 ```bash
-git clone --depth 1 --branch v0.3.0 \
+git clone --depth 1 --branch v0.4.0 \
   https://github.com/Libr-AI/CommonHarness.git \
-  ~/.commonharness/v0.3.0
-~/.commonharness/v0.3.0/install.sh
+  ~/.commonharness/v0.4.0
+~/.commonharness/v0.4.0/install.sh
 ```
 
 To use SSH instead, set `HARNESS_REPO_URL` (note: env var goes before `bash`, not before `curl`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh \
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.4.0/install.sh \
   | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 ```
 
@@ -112,9 +114,9 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/instal
 
 ```
 ~/.commonharness/
-├── v0.2.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
-├── v0.3.0/                ← later, after upgrade — old versions kept for rollback
-└── current  →  v0.3.0     ← which version is active
+├── v0.3.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
+├── v0.4.0/                ← later, after upgrade — old versions kept for rollback
+└── current  →  v0.4.0     ← which version is active
 ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 ```
 
@@ -180,6 +182,7 @@ harness implement <task-id>    # resume / enter the implementer session (also pr
 harness status                 # show CURRENT.md + the active brief (+ team view of all active briefs in team mode)
 harness mode [solo|team]       # show or set the collaboration mode
 harness lang [<bcp47>]         # show or set the language for repo artifacts (specs/briefs/docs)
+harness arch [yes|no]          # show or set whether an architecture doc is provided (scaffold)
 harness end                    # archive a finished task → CURRENT.md back to idle
 harness remember "<text>"      # append a convention/pitfall/decision to MEMORY.md
 harness curate-memory          # quarterly MEMORY.md cleanup (opens it in $EDITOR)
@@ -240,14 +243,14 @@ This is what makes the protocol upgradable without clobbering project-specific w
 
 ```bash
 # Install a new version alongside the old one + flip 'current'.
-# (Replace v0.3.0 with whichever release you're upgrading to.)
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh \
-  | HARNESS_VERSION=v0.3.0 bash
+# (Replace v0.4.0 with whichever release you're upgrading to.)
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.4.0/install.sh \
+  | HARNESS_VERSION=v0.4.0 bash
 
 harness --version    # confirms the new version is now active
 
 # Roll back any time by flipping the symlink (older versions stay on disk):
-ln -sfn ~/.commonharness/v0.2.0 ~/.commonharness/current
+ln -sfn ~/.commonharness/v0.3.0 ~/.commonharness/current
 ```
 
 Old versions stay on disk; switching is a single symlink. Because each version dir is a shallow tag clone, you can't accidentally `git checkout` a different ref and produce inconsistent behavior across the team.

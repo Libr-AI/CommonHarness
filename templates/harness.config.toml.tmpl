@@ -43,5 +43,21 @@ mode = "{{collaboration_mode}}"
 conversation = "auto"
 artifacts    = "{{language_artifacts}}"
 
+[adoption]
+# Brownfield onboarding. "auto" = on `harness init`, if prior agent context is
+# detected (a MEMORY.md, a docs/ folder, agent instruction docs), drop
+# .harness/ADOPT-PENDING so the first `harness start` runs an adoption task
+# (distil into MEMORY.md, relocate the architecture doc, rebuild task history
+# into archive/, reconcile same-name conflicts). "off" = never.
+on_init = "{{adoption_on_init}}"
+
+[architecture]
+# The project map at paths.architecture_doc is a GLOBAL read basis: every
+# session (coordinator, implementer, Cursor rule, SessionStart hook) loads it.
+# `provided` records the scaffold-time choice — "" = unset (asked when a
+# scaffold task starts); "yes" = a doc is/will be supplied; "no" = opted out.
+provided     = "{{architecture_provided}}"
+global_basis = {{architecture_global_basis}}
+
 [presets]
 preset = "{{preset}}"

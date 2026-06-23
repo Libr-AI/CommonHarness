@@ -2,7 +2,7 @@
 # install.sh — install a pinned release of the harness CLI.
 #
 # One-liner (recommended):
-#   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.4.0/install.sh | bash
 #
 # Pin to an older version (env var goes BEFORE bash, not before curl —
 # otherwise it only reaches curl and is dropped before install.sh runs):
@@ -18,9 +18,9 @@
 #     | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 #
 # Layout produced:
-#   ~/.commonharness/v0.2.0/        ← pinned snapshot (one dir per version)
-#   ~/.commonharness/v0.3.0/
-#   ~/.commonharness/current  →  v0.3.0   ← which one is "active"
+#   ~/.commonharness/v0.3.0/        ← pinned snapshot (one dir per version)
+#   ~/.commonharness/v0.4.0/
+#   ~/.commonharness/current  →  v0.4.0   ← which one is "active"
 #   ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 #
 # Upgrade = re-run with new HARNESS_VERSION; old versions stay on disk for
@@ -31,7 +31,7 @@ set -euo pipefail
 
 REPO_URL="${HARNESS_REPO_URL:-https://github.com/Libr-AI/CommonHarness.git}"
 INSTALL_DIR="${HARNESS_INSTALL_DIR:-$HOME/.commonharness}"
-VERSION="${HARNESS_VERSION:-v0.3.0}"
+VERSION="${HARNESS_VERSION:-v0.4.0}"
 BIN_DIR="${HARNESS_BIN_DIR:-$HOME/.local/bin}"
 
 err() { echo "install: $*" >&2; exit 1; }
@@ -93,9 +93,9 @@ Use:
   cd /path/to/your/project
   harness init --preset python-uv
 
-Upgrade later (example — replace v0.3.0 with the next release):
+Upgrade later (example — replace v0.4.0 with the next release):
 
-  HARNESS_VERSION=v0.3.0 \$HOME/.commonharness/current/install.sh
+  HARNESS_VERSION=v0.4.0 \$HOME/.commonharness/current/install.sh
 
   ↑ flips the 'current' symlink; older versions stay on disk for rollback.
 EOF

@@ -11,12 +11,13 @@ This repo enforces a governance protocol for all iterations. Read [AGENTS.md](md
 
 1. Read [.harness/CURRENT.md](mdc:.harness/CURRENT.md) — shows current iteration state.
 2. Read [.harness/MEMORY.md](mdc:.harness/MEMORY.md) — cross-task conventions, pitfalls, decisions.
-3. If `CURRENT.md` is `idle` and the user wants to make changes:
+3. Read [{{paths_architecture_doc}}](mdc:{{paths_architecture_doc}}) if it exists — the project map / global task basis ("change X → which files"). Every session loads it.
+4. If `CURRENT.md` is `idle` and the user wants to make changes:
    - You are entering **coordinator** role. Tell the user to run `harness start` and follow [.harness/templates/start-coordinator.md](mdc:.harness/templates/start-coordinator.md).
-4. If `CURRENT.md` is `in_progress: <id>`:
+5. If `CURRENT.md` is `in_progress: <id>`:
    - Read [.harness/active/<id>.md](mdc:.harness/active/) and [.harness/workflow.md](mdc:.harness/workflow.md).
    - Resume according to the protocol.
-5. **Do not** edit code under {{paths_forbidden_inline_or}} without an active task brief — unless the user explicitly says "this is out-of-protocol".
+6. **Do not** edit code under {{paths_forbidden_inline_or}} without an active task brief — unless the user explicitly says "this is out-of-protocol".
 
 ## Commit-time discipline
 

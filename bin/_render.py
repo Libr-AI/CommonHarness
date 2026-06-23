@@ -118,6 +118,8 @@ def build_vars(preset: dict) -> dict[str, str]:
     integ  = preset.get("integrations", {})
     collab = preset.get("collaboration", {})
     lang   = preset.get("language", {})
+    adopt  = preset.get("adoption", {})
+    arch   = preset.get("architecture", {})
 
     fmt        = verify.get("format", "")
     fmt_check  = verify.get("format_check", "")
@@ -167,6 +169,9 @@ def build_vars(preset: dict) -> dict[str, str]:
 
         "collaboration_mode":          collab.get("mode", ""),
         "language_artifacts":          lang.get("artifacts", ""),
+        "adoption_on_init":            adopt.get("on_init", "auto"),
+        "architecture_provided":       arch.get("provided", ""),
+        "architecture_global_basis":   "true" if arch.get("global_basis", True) else "false",
 
         "int_claude_code":             bf("claude_code"),
         "int_cursor":                  bf("cursor"),
