@@ -53,10 +53,16 @@ else
     # Rolling install (development / latest unstable): full clone, can `git pull`.
     git clone --quiet "$REPO_URL" "$DEST"
   else
-    # Tag-pinned install: shallow clone of a single ref. Can't easily switch
-    # branches afterward — that's intentional, prevents version drift.
-    git clone --quiet --depth 1 --branch "$VERSION" "$REPO_URL" "$DEST" \
+    # Tag-pinned install: init + shallow-fetch the tag + checkout. We avoid
+    # `clone --depth 1 --branch <annotated-tag>`, which prints git's harmless but
+    # alarming "is not a commit!" warning and a detached-HEAD advice block. The
+    # result is the same single pinned commit (no branch to switch to —
+    # intentional, prevents version drift).
+    git init --quiet "$DEST"
+    git -C "$DEST" fetch --quiet --depth 1 "$REPO_URL" tag "$VERSION" \
       || err "couldn't fetch $VERSION — check the tag exists and you have access"
+    git -C "$DEST" -c advice.detachedHead=false checkout --quiet "$VERSION" \
+      || err "couldn't check out $VERSION"
   fi
 fi
 

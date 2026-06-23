@@ -135,7 +135,9 @@ cd /path/to/your/project
 harness init                       # prompts for a preset; pick the one matching your stack
 # or pass it directly, e.g.:
 #   harness init --preset python-uv      (Python + uv + ruff + pytest)
-#   harness init --preset node           (Node + npm/pnpm/yarn, auto-detected)
+#   harness init --preset node           (JavaScript/TypeScript)
+# The preset is only a starting template — it does NOT auto-detect. Whichever you
+# pick, the coordinator adapts [verify]/[paths] to your real stack on first start.
 ```
 
 That writes `AGENTS.md`, `CONTRIBUTING.md` (with TODO sections), `harness.config.toml`, the `.harness/` state directory, and the AI integrations. The CLI prints "Next steps" telling you what to do next.

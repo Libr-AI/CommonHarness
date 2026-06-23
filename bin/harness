@@ -321,15 +321,13 @@ EOF
   echo "harness: init complete."
   echo
   echo "Next steps:"
-  echo "  1. Review harness.config.toml — the coordinator will check [verify]/[paths] against your"
-  echo "     actual stack on the first \`harness start\` and propose fixes; tweak by hand too if you like."
-  echo "  2. Read AGENTS.md to understand the two-session protocol."
+  echo "  1. Read AGENTS.md to understand the two-session protocol."
   if [[ "$greenfield" == "true" ]]; then
-    echo "  3. Run \`harness start\` — your first task is a scaffold-path bootstrap that"
+    echo "  2. Run \`harness start\` — your first task is a scaffold-path bootstrap that"
     echo "     fills CONTRIBUTING.md interactively. DO NOT pre-fill the TODO sections."
   else
-    echo "  3. Run \`harness start\` — the coordinator will offer to fill CONTRIBUTING.md"
-    echo "     TODO sections as a prep task (proposes candidates, asks for confirmation)."
+    echo "  2. Run \`harness start\` — the coordinator sets up [verify]/[paths] for your stack,"
+    echo "     then offers to fill CONTRIBUTING.md TODO sections (proposes candidates, you confirm)."
   fi
 }
 
