@@ -42,7 +42,7 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 In your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh | bash
 ```
 
 When this finishes, the `harness` CLI is at `~/.local/bin/harness` (symlinked through `~/.commonharness/current/`).
@@ -71,7 +71,7 @@ echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin"
 harness --version
 ```
 
-Expected: `harness 0.2.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
+Expected: `harness 0.3.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
 
 ### Pin to a different version
 
@@ -93,16 +93,16 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.
 ### Manual install (if you don't want curl-pipe-bash)
 
 ```bash
-git clone --depth 1 --branch v0.2.0 \
+git clone --depth 1 --branch v0.3.0 \
   https://github.com/Libr-AI/CommonHarness.git \
-  ~/.commonharness/v0.2.0
-~/.commonharness/v0.2.0/install.sh
+  ~/.commonharness/v0.3.0
+~/.commonharness/v0.3.0/install.sh
 ```
 
 To use SSH instead, set `HARNESS_REPO_URL` (note: env var goes before `bash`, not before `curl`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/install.sh \
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.3.0/install.sh \
   | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 ```
 
@@ -112,9 +112,9 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.2.0/instal
 
 ```
 ~/.commonharness/
-├── v0.1.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
-├── v0.2.0/                ← later, after upgrade — old versions kept for rollback
-└── current  →  v0.2.0     ← which version is active
+├── v0.2.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
+├── v0.3.0/                ← later, after upgrade — old versions kept for rollback
+└── current  →  v0.3.0     ← which version is active
 ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 ```
 
