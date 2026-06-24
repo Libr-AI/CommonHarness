@@ -51,15 +51,31 @@ Run in coordinator step 0 (first run, or whenever `[verify]`/`[paths]` look like
 
 This keeps the CLI universal: all stack-specific knowledge lives here, in the agent's reasoning, applied per project.
 
-## Adoption gate — brownfield context import
+## Memory-import gate — fold prior agent memory into the harness
 
-Triggered in coordinator step 1 when `.harness/ADOPT-PENDING` exists (written by `harness init` on a brownfield project that already had agent context — a `MEMORY.md`, a `docs/` folder, or agent instruction docs). The marker lists the detected `sources:` and any `conflict:` files. Run this as the FIRST task, before the user's request. Confirm each step with the user; **never overwrite without confirmation.**
+Runs in coordinator **step 0 (first run only)**. There is no marker and no CLI detection — **the coordinator detects, intelligently, on both sides**, and only acts if it actually finds prior memory. The whole point: when a project was previously driven by some agent (Claude Code / Codex / Cursor / …), don't lose that memory — unify it into `.harness/MEMORY.md` so *every* tool reads it going forward.
 
-1. **Distil memory.** Read the listed sources. Extract durable conventions / pitfalls / decisions / open questions into the matching sections of [MEMORY.md](MEMORY.md). Anything you can't confidently distil, **link** under MEMORY.md → "Imported prior context" so it stays on the load path. Lose nothing.
-2. **Relocate the architecture doc.** If a project map / architecture / design doc exists, move or consolidate it into `{{paths_architecture_doc}}` and run `harness arch yes` (it becomes the global task basis read by every session). If there genuinely is none, leave it and continue.
-3. **Rebuild task history.** If the sources describe prior work / task history, write a concise `archive/<date>-pre-harness-history.md` summarising it, so the protocol has an audit trail of what predates adoption.
-4. **Reconcile same-name conflicts.** For each `conflict:` file (`AGENTS.md` / `CONTRIBUTING.md` / `CLAUDE.md` that pre-existed and blocked the protocol version from installing): move project-specific content into MEMORY.md, the `CONTRIBUTING.md` user region (outside the `harness:begin/end` fence), or `{{paths_architecture_doc}}`; then re-run `harness init --force` (or hand-place the protocol file) so the canonical version installs.
-5. **Close out.** Delete `.harness/ADOPT-PENDING`, commit (`chore: adopt prior agent context into harness`), then `harness start` again for the user's real request.
+### 1. Detect (no fixed filename list — recognise by purpose, tolerate name/case variants)
+
+- **In the repo:** memory / convention / decision / notes docs; agent instruction files (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md` in any case, `.cursor/rules/`, `.cursorrules`, `.github/copilot-instructions.md`); a `memory/` directory; design docs under `docs/`.
+- **At the user level, scoped to THIS project** (not cross-project globals):
+  - **Claude Code** — `~/.claude/projects/<ENC>/` where `<ENC>` is this repo's absolute path with every `/` replaced by `-`. Contains a `memory/` dir + session `*.jsonl`. **Cleanest source.**
+  - **Codex** — `~/.codex/sessions/*.jsonl` (and `~/.codex/history.jsonl`); filter to entries whose recorded `cwd` is this repo. Session logs, not curated memory — extract the durable bits.
+  - **Cursor** — `~/Library/Application Support/Cursor/User/workspaceStorage/<hash>/`; find the one whose `workspace.json` `folder` is this repo, then read `state.vscdb` (SQLite; needs `sqlite3`). DB, partial fidelity.
+  - **Ignore** user-level cross-project memory (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, …) — those aren't about this project and the tool auto-loads its own anyway.
+
+### 2. Ask the source — only if something was found
+
+If (and only if) detection turned up prior memory, ask the user via the tool's native question UI which source to import from: **① in the repo, ② my user-level memory for this project, ③ both.** List only sources you actually found and can read; warn that Codex/Cursor user-level is session-logs/DB and may be partial. **Found nothing → skip silently; never ask when there's no prior memory.**
+
+### 3. Import (distil → unify), confirming each step
+
+1. **Distil** durable conventions / pitfalls / decisions / open questions from the chosen sources into the matching sections of [MEMORY.md](MEMORY.md). Anything you can't confidently distil, **link** under MEMORY.md → "Imported prior context" so it stays on the load path. Lose nothing.
+2. **Relocate the architecture doc.** If a project map / architecture / design doc is among the sources, consolidate it into `{{paths_architecture_doc}}` and run `harness arch yes` (it becomes the global basis read at every entry point).
+3. **Rebuild task history.** If the sources describe prior work, write a concise `archive/<date>-pre-harness-history.md` so the protocol has an audit trail of what predates the harness.
+4. **Reconcile same-name conflicts.** For any pre-existing `AGENTS.md` / `CONTRIBUTING.md` / `CLAUDE.md` that blocked the protocol version from installing: move project content into MEMORY.md, the `CONTRIBUTING.md` user region (outside the `harness:begin/end` fence), or `{{paths_architecture_doc}}`; then re-run `harness init --force` (or hand-place the file) so the canonical version installs.
+
+Gated by `[adoption] on_init = "auto" | "off"`. Once `.harness/MEMORY.md` is the unified store, ongoing memory goes through `harness remember` and every tool reads it (SessionStart hooks + Cursor rule + the coordinator/implementer prompts all load MEMORY.md).
 
 ## Implementer session — step by step
 

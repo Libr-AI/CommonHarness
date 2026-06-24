@@ -44,11 +44,12 @@ conversation = "auto"
 artifacts    = "{{language_artifacts}}"
 
 [adoption]
-# Brownfield onboarding. "auto" = on `harness init`, if prior agent context is
-# detected (a MEMORY.md, a docs/ folder, agent instruction docs), drop
-# .harness/ADOPT-PENDING so the first `harness start` runs an adoption task
-# (distil into MEMORY.md, relocate the architecture doc, rebuild task history
-# into archive/, reconcile same-name conflicts). "off" = never.
+# Brownfield onboarding. "auto" = on the first `harness start`, the coordinator
+# looks for prior agent memory about this project — in the repo AND in your
+# user-level store for this project (Claude Code's ~/.claude/projects/<repo>,
+# Codex/Cursor session stores) — and, only if it finds some, asks which source
+# to import and distils it into .harness/MEMORY.md (+ relocate architecture doc,
+# rebuild history into archive/, reconcile same-name conflicts). "off" = never.
 on_init = "{{adoption_on_init}}"
 
 [architecture]

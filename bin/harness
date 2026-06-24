@@ -45,33 +45,6 @@ locate_target() {
   ARCHIVE_DIR="$HARNESS_DIR/archive"
   TEMPLATES_OUT_DIR="$HARNESS_DIR/templates"
   SCAFFOLD_MARKER="$HARNESS_DIR/SCAFFOLD-PENDING"
-  ADOPT_MARKER="$HARNESS_DIR/ADOPT-PENDING"
-}
-
-# Detect pre-existing agent context in a brownfield project, BEFORE harness
-# renders its own files (so harness's own AGENTS.md / MEMORY.md don't count).
-# Echoes one source per line; same-name conflicts are prefixed "conflict: ".
-detect_prior_context() {
-  local f
-  # Memory docs (foreign — harness's own lives at .harness/MEMORY.md and is
-  # written by render, which hasn't run yet at call time).
-  [[ -f "$TARGET_ROOT/MEMORY.md" ]] && echo "MEMORY.md"
-  [[ -f "$TARGET_ROOT/.harness/MEMORY.md" ]] && echo ".harness/MEMORY.md"
-  # Agent instruction docs / convention logs.
-  for f in CLAUDE.md GEMINI.md .cursorrules .clinerules \
-           CONVENTIONS.md DECISIONS.md NOTES.md .github/copilot-instructions.md; do
-    [[ -f "$TARGET_ROOT/$f" ]] && echo "$f"
-  done
-  [[ -d "$TARGET_ROOT/.cursor/rules" ]] && echo ".cursor/rules/"
-  # docs/ folder with any file in it.
-  if [[ -d "$TARGET_ROOT/docs" ]] && find "$TARGET_ROOT/docs" -type f -print -quit 2>/dev/null | grep -q .; then
-    echo "docs/"
-  fi
-  # Same-name files harness wants to own — flag as conflicts to reconcile.
-  for f in AGENTS.md CONTRIBUTING.md CLAUDE.md; do
-    [[ -f "$TARGET_ROOT/$f" ]] && echo "conflict: $f"
-  done
-  return 0
 }
 
 # Greenfield heuristic. Returns 0 (greenfield) iff ALL of:
@@ -261,13 +234,6 @@ cmd_init() {
 
   echo "harness: initializing with preset '$preset' in $TARGET_ROOT (greenfield=$greenfield)"
 
-  # Capture pre-existing agent context BEFORE render writes harness's own files.
-  # Only meaningful for brownfield (greenfield has nothing to adopt).
-  local prior_context=""
-  if [[ "$greenfield" == "false" ]]; then
-    prior_context="$(detect_prior_context)"
-  fi
-
   # Render everything in one python pass.
   HARNESS_HOME="$HARNESS_HOME" \
   TARGET_ROOT="$TARGET_ROOT" \
@@ -295,26 +261,6 @@ EOF
     # Explicit --no-greenfield on a project mid-scaffold: clear the marker.
     rm "$SCAFFOLD_MARKER"
     echo "harness: --no-greenfield cleared an existing scaffold marker."
-  fi
-
-  # Adoption marker: brownfield project that had prior agent context. The first
-  # `harness start` will run an adoption task (distil → MEMORY.md, relocate the
-  # architecture doc, rebuild history → archive/, reconcile same-name conflicts).
-  if [[ -n "$prior_context" && ! -f "$ADOPT_MARKER" && "$(cfg_get adoption.on_init)" != "off" ]]; then
-    mkdir -p "$HARNESS_DIR"
-    {
-      echo "# adoption pending — coordinator will run an adoption task on the first"
-      echo "# \`harness start\`: distil prior context into .harness/MEMORY.md, relocate"
-      echo "# any architecture doc to docs/ARCHITECTURE.md, rebuild task history into"
-      echo "# .harness/archive/, and reconcile the same-name conflicts below. Removed"
-      echo "# when the adoption task completes."
-      echo "created: $(today)"
-      echo "sources:"
-      while IFS= read -r line; do
-        [[ -n "$line" ]] && echo "  - $line"
-      done <<< "$prior_context"
-    } > "$ADOPT_MARKER"
-    echo "harness: detected prior agent context → wrote $ADOPT_MARKER (adoption task pending)."
   fi
 
   echo
@@ -371,15 +317,6 @@ NOTE: .harness/SCAFFOLD-PENDING is present — the coordinator WILL route this
 task to scaffold path (4 pre-named phases: architecture decisions → directory
 skeleton → first runnable module → CONTRIBUTING fill + CI). The three-question
 triage rubric is skipped. The marker is removed when Phase 4 completes.
-
-EOF
-  fi
-  if [[ -f "$ADOPT_MARKER" ]]; then
-    cat <<EOF
-NOTE: .harness/ADOPT-PENDING is present — this repo had prior agent context.
-The coordinator WILL run an adoption task FIRST (distil into MEMORY.md, relocate
-the architecture doc, rebuild history into archive/, reconcile same-name
-conflicts) before your request. The marker is removed when adoption completes.
 
 EOF
   fi

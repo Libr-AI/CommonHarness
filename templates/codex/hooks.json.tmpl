@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat .harness/CURRENT.md 2>/dev/null && echo '---' && cat AGENTS.md 2>/dev/null | head -60 && echo '---' && cat {{paths_architecture_doc}} 2>/dev/null | head -40"
+            "command": "cat .harness/CURRENT.md 2>/dev/null && echo '---' && cat .harness/MEMORY.md 2>/dev/null | head -80 && echo '---' && cat AGENTS.md 2>/dev/null | head -60 && echo '---' && cat {{paths_architecture_doc}} 2>/dev/null | head -40"
           }
         ]
       }
