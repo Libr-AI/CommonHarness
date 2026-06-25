@@ -1,0 +1,36 @@
+---
+last-updated: {{today}}
+---
+
+# Backlog — planned tasks not yet started
+
+> The coordinator's **cross-session todo list**. The in-chat plan (task
+> breakdown, merges, priorities) lives only in a coordinator session and is lost
+> when that session is replaced — this file is where it survives. Each entry is a
+> task that has been planned/scoped but does **not yet** have a brief in
+> `.harness/active/` (briefs are the next stage; this is the stage before them).
+>
+> **Coordinator contract:**
+> - On startup, read this file. If it has queued items, present them to the user
+>   with a recommended order and ask which to start first — only open that brief
+>   after the user confirms. If it's empty, proceed normally (ask what they want).
+> - Whenever you plan, split, merge, or reprioritise tasks, write them here.
+> - When a brief is created for a queued item, remove it from "Queued" (it now
+>   lives in `.harness/active/`).
+>
+> This is unrelated to the CONTRIBUTING `🛠 TODO` gate.
+
+## Queued (recommended order)
+
+<!--
+Highest priority first. One line per task:
+1. <short task name> — <one-line scope> [priority: high|med|low] [depends-on: <task | —>]
+-->
+
+- (none yet)
+
+## Notes / breakdown decisions
+
+<!-- Why a task was split/merged/deprioritised — context the next coordinator needs. -->
+
+- (none yet)

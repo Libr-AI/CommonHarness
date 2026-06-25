@@ -44,6 +44,7 @@ ROUTES: list[tuple[str, str, str | None, bool]] = [
     (".harness/triage.md.tmpl",                                     ".harness/triage.md",                         None,           False),
     (".harness/CURRENT.md.tmpl",                                    ".harness/CURRENT.md",                        None,           False),
     (".harness/MEMORY.md.tmpl",                                     ".harness/MEMORY.md",                         None,           False),
+    (".harness/TODO.md.tmpl",                                       ".harness/TODO.md",                           None,           False),
     (".harness/templates/start-coordinator.md.tmpl",                ".harness/templates/start-coordinator.md",    None,           False),
     (".harness/templates/start-implementer.md.tmpl",                ".harness/templates/start-implementer.md",    None,           False),
     (".harness/templates/task-brief.md.tmpl",                       ".harness/templates/task-brief.md",           None,           False),
@@ -71,6 +72,7 @@ ROUTES: list[tuple[str, str, str | None, bool]] = [
 OWNED_PATHS = {
     ".harness/CURRENT.md",
     ".harness/MEMORY.md",
+    ".harness/TODO.md",
 }
 
 # JSON outputs where the harness owns ONLY the `hooks` key. When these already

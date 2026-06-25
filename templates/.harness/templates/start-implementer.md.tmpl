@@ -36,7 +36,7 @@ You are the **implementer** for an iteration on this repository. Follow the harn
     - Tell me: "Ready to commit. Suggested message: `<the message from the commit point line>`. After committing, push the branch."
     - Wait for my confirmation that I committed.
 11. After commit, look at the next marker:
-    - `> 🛑 New session boundary` → tell me to open a fresh session for Phase n+1, paste this template again with the same task-id, then **stop responding** in this session.
+    - `> 🛑 New session boundary` → hand off per `AGENTS.md` → "Session-boundary handoff": tell me in one line to **open a fresh session and paste the block below**, then output **the complete kickoff for Phase n+1 in full** — this template (`.harness/templates/start-implementer.md`) with the task-id already filled in the "My task-id" slot — then **stop responding** in this session. Always paste it in full even if it was pasted before; never shorten it, never just point me to the file, never ask "do you have it?".
     - `> ↪ OK to continue same session` → continue with Phase n+1 in this same session.
 12. **Final phase**: when all phases are complete, run the `## Closing checklist` from the brief:
     - Write `## Final summary` (3–5 lines).

@@ -22,10 +22,12 @@ The coordinator is opened with [templates/start-coordinator.md](templates/start-
    - **Scaffold path**: 4 pre-named phases — (1) architecture decisions, (2) directory skeleton + manifest, (3) first runnable module + verify wiring, (4) CONTRIBUTING fill + CI + close-out (which removes `.harness/SCAFFOLD-PENDING`). Each phase is a `> 🛑 New session boundary`.
    - **Spec-bearing brief** (any path): prepend a Phase 0 whose only work is drafting `{{paths_spec_dir}}<task-id>.md` and committing it.
 8. **Update state.** Set [CURRENT.md](CURRENT.md) to `in_progress: <task-id>`.
-9. **Hand off.**
-   - Light path (no spec): tell the user "you can switch to implementer mode in this same session — paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
-   - Full or scaffold path, or any spec-bearing brief: tell the user "open a fresh session, paste [templates/start-implementer.md](templates/start-implementer.md) and the task-id".
-10. **Done.** The coordinator does NOT touch code. Editing scope is `.harness/` only (plus drafting spec outline *inside the brief* — the actual `{{paths_spec_dir}}<task-id>.md` file is written by the implementer in Phase 0).
+9. **Hand off** per "Session-boundary handoff" in [AGENTS.md](../AGENTS.md): point the brief out for review (don't dump it back), say same-session (light, no spec) vs fresh session (full / scaffold / spec-bearing), and **output the complete implementer kickoff in full with the task-id already filled** — in full every time, never abbreviated, never just a pointer, never "do you have it?".
+10. **Stay resident.** The coordinator does NOT touch code (editing scope `.harness/` + `harness.config.toml`; spec files are the implementer's in Phase 0). It does NOT end after one hand-off — it stays available to plan more tasks, keeping [TODO.md](TODO.md) current, and suggests a fresh coordinator session only after a very large task. Phase-to-phase hand-offs are the implementer's own job — do not route phase results back through the coordinator.
+
+## Backlog — TODO.md
+
+[TODO.md](TODO.md) is the coordinator's **cross-session planning backlog**: tasks that have been scoped/split/merged/prioritised but don't yet have a brief in [active/](active/). The in-chat plan dies with a coordinator session; this file is where it survives, so any new coordinator picks up the same queue. Team-shared (committed). Coordinator step 6 (Backlog gate) reads it on startup and — if non-empty — proposes the queued tasks in a recommended order and asks which brief to start before opening one; if empty, the normal "what do you want to do?" flow runs. The coordinator writes here whenever it plans/splits/merges/reprioritises, and removes an item once its brief exists.
 
 ## TODO gate — prep-task spec
 
@@ -95,7 +97,7 @@ The implementer is opened with [templates/start-implementer.md](templates/start-
    - Tick the phase's checkboxes.
    - Tell the user the suggested commit message (from the phase's commit-point line) and tell them to commit + push.
 6. **Phase boundary decision.** When the phase is complete:
-   - If the next marker is `> 🛑 New session boundary` → tell the user to open a fresh session for the next phase, then **stop**.
+   - If the next marker is `> 🛑 New session boundary` → hand off per "Session-boundary handoff" in [AGENTS.md](../AGENTS.md): tell the user to open a fresh session and paste the block below, **output the complete next-phase kickoff in full (this implementer template, task-id filled)**, then **stop**. Never abbreviate it or ask "do you have it?".
    - If the next marker is `> ↪ OK to continue same session` → continue with the next phase in the same session.
 7. **Final phase complete?** Run `## Closing checklist` from the brief:
    - Append a `## Final summary` section (3–5 lines: what was done, key decisions, anything surprising)

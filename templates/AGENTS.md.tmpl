@@ -89,6 +89,17 @@ The default between phases is **new session** (per [Phase boundary hardness = me
 
 ---
 
+## Session-boundary handoff (always, no exceptions)
+
+At **every** `> 🛑 New session boundary` — whoever is producing the handoff (the implementer finishing a phase, or a coordinator) — you MUST, in your reply:
+
+1. **Tell the user exactly what to do** in one line: "Open a fresh session and paste the block below." (For a `> ↪ OK to continue same session` boundary, instead say you're continuing — no paste needed.)
+2. **Output the complete next-step kickoff inline, in full** — the relevant template (`.harness/templates/start-implementer.md` for a phase; `start-coordinator.md` for a new iteration) with the **task-id already filled** in its slot. The user must be able to copy one block and paste it, nothing else.
+
+**Always emit the kickoff in full, even if you (or a previous turn) already pasted it. Never abbreviate it, never replace it with a pointer to the file, and never ask "do you have it?" / "want it again?"** This rule is re-stated here (not only in the one-time session-opening prompt) precisely so it survives long sessions.
+
+---
+
 ## Branch model
 
 ```
