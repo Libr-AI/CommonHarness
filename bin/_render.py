@@ -27,6 +27,7 @@ PRESET_FILE     = os.environ.get("PRESET_FILE", "")
 TODAY           = os.environ.get("TODAY", "")
 FORCE           = os.environ.get("FORCE", "false") == "true"
 GREENFIELD      = os.environ.get("HARNESS_GREENFIELD", "false") == "true"
+UPGRADE         = os.environ.get("HARNESS_UPGRADE", "false") == "true"
 
 TEMPLATES_DIR = HARNESS_HOME / "templates"
 
@@ -264,6 +265,54 @@ def merge_hooks_json(existing: str, rendered: str) -> str:
     return json.dumps(existing_obj, indent=2) + "\n"
 
 
+# --- config-preserving upgrade -----------------------------------------------
+#
+# `harness upgrade` refreshes Managed files to the new version but must NOT reset
+# a tuned harness.config.toml. Strategy: start from the freshly-rendered config
+# (new structure + new sections + new comments + new harness_version) and overlay
+# every value the user already had, so their tuned [verify]/[paths]/mode/etc.
+# survive while new keys/sections keep their new defaults.
+
+def _toml_literal(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        return "[" + ", ".join(f'"{v}"' for v in value) + "]"
+    return f'"{value}"'
+
+
+def _overlay_value(text: str, section: str, key: str, literal: str) -> str:
+    """Replace the RHS of `key` within `[section]` in `text`, preserving the
+    line's left side (indent/alignment). No-op if the key line isn't present."""
+    lines = text.splitlines()
+    cur = None
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if s.startswith("[") and s.endswith("]"):
+            cur = s[1:-1]
+            continue
+        if cur == section and "=" in s and s.split("=", 1)[0].strip() == key:
+            prefix = line.split("=", 1)[0]
+            lines[i] = f"{prefix}= {literal}"
+            break
+    return "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+
+
+def merge_config_preserving(existing: str, rendered: str) -> str:
+    """Overlay the user's existing config values onto the freshly-rendered config.
+    Top-level keys (harness_version) are NOT overlaid — the rendered (new) value
+    wins so the version bumps. Sections/keys absent from the rendered config are
+    dropped (obsolete); sections/keys new in the render keep their defaults."""
+    data = _load_toml(existing)
+    result = rendered
+    for section, body in data.items():
+        if not isinstance(body, dict):
+            continue  # top-level scalar (e.g. harness_version) — keep rendered's
+        for key, value in body.items():
+            result = _overlay_value(result, section, key, _toml_literal(value))
+    return result
+
+
 # --- .gitignore --------------------------------------------------------------
 
 def ensure_gitignore_entry(path: pathlib.Path, entry: str) -> None:
@@ -321,6 +370,18 @@ def main() -> int:
 
         if output_path.exists():
             existing = output_path.read_text(encoding="utf-8")
+
+            # Upgrade: preserve the tuned config — overlay existing values onto
+            # the freshly-rendered structure (new sections/version) instead of
+            # regenerating from the preset.
+            if UPGRADE and output_rel == "harness.config.toml":
+                new_text = merge_config_preserving(existing, rendered)
+                if new_text == existing:
+                    skipped.append((output_rel, "config already current"))
+                    continue
+                output_path.write_text(new_text, encoding="utf-8")
+                merged.append(output_rel)
+                continue
 
             # JSON hooks-owned file → merge only the `hooks` key, preserving
             # all other project-added keys. Applies regardless of FORCE.

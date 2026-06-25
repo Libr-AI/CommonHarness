@@ -137,7 +137,7 @@ Usage: harness <command> [args]
 
 Setup commands:
   init [--preset <name>] [--force]   Bootstrap harness into the current repo
-  upgrade [--to <ver>] [--dry-run]   Pull latest templates from upstream      (not yet implemented)
+  upgrade                            Re-render protocol/templates to the installed version (keeps your config + work)
   doctor                             Diagnose drift / broken hooks            (not yet implemented)
 
 Workflow commands:
@@ -208,7 +208,7 @@ cmd_init() {
 
   # Pre-flight: if config exists and not forcing, refuse.
   if [[ -f "$CONFIG_FILE" && "$force" != "true" ]]; then
-    err "harness.config.toml already exists. Pass --force to overwrite, or run 'harness upgrade' once that's available."
+    err "harness.config.toml already exists. Pass --force to overwrite, or run 'harness upgrade' to refresh templates while keeping your config."
   fi
 
   # Resolve greenfield mode. Flag wins; otherwise auto-detect with confirm prompt.
@@ -616,7 +616,40 @@ print(f"last-curated updated to {today}")
 PY
 }
 
-cmd_upgrade() { err "upgrade is not yet implemented (planned for v0.2)"; }
+cmd_upgrade() {
+  require_initialized
+  # Re-render Managed templates/integration files to the installed version,
+  # while PRESERVING harness.config.toml (overlay existing values onto the new
+  # structure, add new sections, bump version) and all work files (active/,
+  # archive/, MEMORY.md, CURRENT.md, TODO.md, docs/specs/ — owned / not rendered).
+  local preset preset_file=""
+  preset="$(cfg_get presets.preset)"
+  preset="${preset:-none}"
+  if [[ "$preset" != "none" ]]; then
+    preset_file="$PRESETS_DIR/$preset.toml"
+    [[ -f "$preset_file" ]] || err "preset '$preset' (from harness.config.toml) not found at $preset_file"
+  fi
+
+  echo "harness: upgrading to $HARNESS_VERSION (preset '$preset')."
+  echo "         refreshing protocol/templates; preserving harness.config.toml + your work."
+
+  HARNESS_HOME="$HARNESS_HOME" \
+  TARGET_ROOT="$TARGET_ROOT" \
+  HARNESS_VERSION="$HARNESS_VERSION" \
+  PRESET="$preset" \
+  PRESET_FILE="$preset_file" \
+  TODAY="$(today)" \
+  FORCE="true" \
+  HARNESS_UPGRADE="true" \
+  HARNESS_GREENFIELD="false" \
+  python3 "$HARNESS_HOME/bin/_render.py"
+
+  echo
+  echo "harness: upgrade complete. Review with \`git diff\`."
+  echo "Note: Managed files (AGENTS.md, .harness/{workflow,triage,templates}, integrations) were"
+  echo "refreshed from upstream — any manual edits to those are replaced. Your config, memory,"
+  echo "backlog, active/archived briefs and specs are untouched."
+}
 cmd_doctor()  { err "doctor is not yet implemented (planned for v0.2)"; }
 
 # --- dispatch ----------------------------------------------------------------

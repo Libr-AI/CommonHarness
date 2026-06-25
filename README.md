@@ -45,7 +45,7 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 In your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.6.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.0/install.sh | bash
 ```
 
 When this finishes, the `harness` CLI is at `~/.local/bin/harness` (symlinked through `~/.commonharness/current/`).
@@ -74,7 +74,7 @@ echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin"
 harness --version
 ```
 
-Expected: `harness 0.6.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
+Expected: `harness 0.7.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
 
 ### Pin to a different version
 
@@ -96,16 +96,16 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.
 ### Manual install (if you don't want curl-pipe-bash)
 
 ```bash
-git clone --depth 1 --branch v0.6.0 \
+git clone --depth 1 --branch v0.7.0 \
   https://github.com/Libr-AI/CommonHarness.git \
-  ~/.commonharness/v0.6.0
-~/.commonharness/v0.6.0/install.sh
+  ~/.commonharness/v0.7.0
+~/.commonharness/v0.7.0/install.sh
 ```
 
 To use SSH instead, set `HARNESS_REPO_URL` (note: env var goes before `bash`, not before `curl`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.6.0/install.sh \
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.0/install.sh \
   | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 ```
 
@@ -115,9 +115,9 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.6.0/instal
 
 ```
 ~/.commonharness/
-├── v0.5.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
-├── v0.6.0/                ← later, after upgrade — old versions kept for rollback
-└── current  →  v0.6.0     ← which version is active
+├── v0.6.0/                ← pinned snapshot (shallow tag clone, can't switch branches)
+├── v0.7.0/                ← later, after upgrade — old versions kept for rollback
+└── current  →  v0.7.0     ← which version is active
 ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 ```
 
@@ -234,7 +234,7 @@ Key config keys you'll want to know about:
 
 CommonHarness sorts files in the target repo into three layers, and each behaves differently on re-runs / upgrades:
 
-| Layer              | Files                                                                                       | Behavior on `harness init --force` / future `harness upgrade` |
+| Layer              | Files                                                                                       | Behavior on `harness upgrade` / `harness init --force` |
 |--------------------|---------------------------------------------------------------------------------------------|---------------------------------------------------------------|
 | **Managed**        | `AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/{commands,hooks}/*`, `.cursor/rules/harness.mdc`, `mcp/skills/harness/SKILL.md`, `.codex/hooks/check-harness-state.sh` | Overwritten cleanly from upstream templates                   |
 | **Fenced fragment**| `CONTRIBUTING.md`, `CLAUDE.md`, `.github/PULL_REQUEST_TEMPLATE.md`                          | **Marker-aware merge**: only the `<!-- harness:begin --> … <!-- harness:end -->` block is replaced; everything outside (your business content) is preserved |
@@ -251,54 +251,49 @@ This is what makes the protocol upgradable without clobbering project-specific w
 
 ```bash
 # Install a new version alongside the old one + flip 'current'.
-# (Replace v0.6.0 with whichever release you're upgrading to.)
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.6.0/install.sh \
-  | HARNESS_VERSION=v0.6.0 bash
+# (Replace v0.7.0 with whichever release you're upgrading to.)
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.0/install.sh \
+  | HARNESS_VERSION=v0.7.0 bash
 
 harness --version    # confirms the new version is now active
 
 # Roll back any time by flipping the symlink (older versions stay on disk):
-ln -sfn ~/.commonharness/v0.5.0 ~/.commonharness/current
+ln -sfn ~/.commonharness/v0.6.0 ~/.commonharness/current
 ```
 
 Old versions stay on disk; switching is a single symlink. Because each version dir is a shallow tag clone, you can't accidentally `git checkout` a different ref and produce inconsistent behavior across the team.
 
 ### Step 2 — apply the new version to a project
 
-Find the preset your project was originally initialized with — it's recorded at the bottom of `harness.config.toml`:
-
-```bash
-grep '^preset' harness.config.toml
-# e.g.  preset = "python-uv"  → use python-uv below
-```
-
-Then back up the config (it's the one file that gets overwritten in full — see the caveat below) and re-run init with `--force` and `--no-greenfield`:
+From the project root:
 
 ```bash
 cd /path/to/target/project
-cp harness.config.toml harness.config.toml.bak           # safety backup
-harness init --preset <same-preset> --force --no-greenfield
-diff harness.config.toml.bak harness.config.toml         # spot any tuning to merge back
-# (manually re-apply any [verify] / [paths] / [branch] tuning you'd customized)
-rm harness.config.toml.bak                                # once you're satisfied
+harness upgrade
+git diff            # review what changed
 ```
 
-**Why `--no-greenfield`?** Without that flag, init's greenfield detection re-runs on every `--force` re-init. The heuristic CAN false-positive on existing projects whose source dir isn't named `src/` / `tests/` etc. — and an accidental `Y` at the prompt would write a stray scaffold marker into your already-mature project. `--no-greenfield` skips the prompt and the detection entirely; for any project being **upgraded** (not freshly bootstrapped), that's always the right answer.
+`harness upgrade` re-renders the **Managed** protocol/template files (`AGENTS.md`, `.harness/{workflow,triage,templates}`, the Claude/Cursor/Codex integrations) to the installed version, while:
+
+- **preserving `harness.config.toml`** — your tuned `[verify]` / `[paths]` / `[branch]` / mode / lang values are kept; new sections from the new version are added with defaults; `harness_version` is bumped. (It reads the preset from your config, so no `--preset` needed.)
+- **never touching your work** — `.harness/{CURRENT,MEMORY,TODO}.md`, `active/`, `archive/`, and `docs/specs/` are left as-is. An in-progress task survives the upgrade.
+
+> **Caveat:** Managed files are refreshed from upstream, so **manual edits to `AGENTS.md` / `workflow.md` / templates / integration hooks are replaced.** Keep project-specific content out of those — put it in `CONTRIBUTING.md` (outside the `harness:begin/end` fence), your own `.harness/` docs, or `docs/ARCHITECTURE.md`. Fenced fragments (`CONTRIBUTING.md`, `CLAUDE.md`, PR template) keep your out-of-fence content; `settings.json` / `.codex/hooks.json` keep every key except `hooks`.
 
 **What `--force` touches:**
 
 - **Managed files** (`AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/*`, `.cursor/rules/*`, `mcp/skills/*`) → re-rendered from upstream templates (your edits to these files are overwritten — they're not meant to be edited locally).
 - **Fenced fragments** (`CONTRIBUTING.md`, `CLAUDE.md`, `.github/PULL_REQUEST_TEMPLATE.md`) → marker-aware merged. Only the `<!-- harness:begin --> … <!-- harness:end -->` block is replaced; your business content outside the fence is preserved.
 - **Owned files** (`.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/TODO.md`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*`) → never touched. In-progress tasks, accumulated memory, and existing specs all survive.
-- **`harness.config.toml`** → ⚠ **rewritten in full from the preset defaults**, including resetting `[verify]` / `[paths]` / `[branch]` to preset values. This is why Step 2 starts with `cp ... .bak` — diff your backup against the new file and re-apply any tuning. (A future `harness upgrade` command, planned, will do field-level merge to avoid this manual step.)
+- **`harness.config.toml`** → depends on the command: **`harness upgrade`** preserves it (overlays your tuned values onto the new structure, adds any new sections with defaults, bumps `harness_version`); **`harness init --force`** regenerates it from the preset (resetting `[verify]` / `[paths]` / etc.). For upgrades, prefer `harness upgrade`.
 
 The renderer prints `+ wrote` / `~ merged` / `· skipped` for each file so the diff is auditable.
 
-Whoever runs Step 2 then commits + pushes, and the rest of the team gets the new protocol on `git pull` of their project — they don't all need to run `init --force` themselves.
+Whoever runs Step 2 then commits + pushes, and the rest of the team gets the new protocol on `git pull` of their project — they don't all need to run `harness upgrade` themselves.
 
 ### Planned for future versions
 
-- `harness upgrade [--to <ver>] [--dry-run]` — combines Steps 1 and 2; shows diff before writing.
+- `harness upgrade --dry-run` — show the diff before writing (today: just review with `git diff` afterwards).
 - `harness doctor` — reports drift, broken hooks, version mismatch (`harness --version` ≠ project's `harness_version`), and unfilled `🛠 TODO (project maintainers)` markers (note: the v0.2.0 TODO gate already detects these at `harness start` time, but doctor surfaces them outside any coordinator session).
 
 ---
