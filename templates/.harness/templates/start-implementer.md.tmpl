@@ -21,11 +21,7 @@ You are the **implementer** for an iteration on this repository. Follow the harn
 5. Read `.harness/MEMORY.md` to load existing conventions/pitfalls/decisions.
 6. Read `AGENTS.md` and `.harness/workflow.md` for protocol rules (commit points, session boundaries, anti-garbage rules).
 7. Read `{{paths_architecture_doc}}` so you know the project structure and the "change X → touch which files" lookup. (For scaffold-path Phase 1 this file may not exist yet — you'll create it as part of the phase work.)
-8. Append a session-log header to `## Implementation log` in the active brief:
-   ```
-   ### Session <ISO-timestamp> — <tool name> — Phase <n>
-   ```
-   (where n is the next phase whose checklist isn't fully ticked).
+8. Append a session-log header to `## Implementation log` in the active brief — a line of the form `### Session <ISO-timestamp> — <tool name> — Phase <n>` (where n is the next phase whose checklist isn't fully ticked). (Written as inline text, not a fenced block, so this kickoff stays safe to paste inside a code block.)
 9. Find the next unchecked phase. Execute its checklist items in order. Use `{{paths_architecture_doc}}` "change X → which files" table to know what to edit. **If the brief has a `spec:` field, every implementation decision in this phase must trace back to the spec** — when in doubt, re-open the spec file and quote the relevant section in your reasoning.
 10. When you reach `> ✋ Commit point`:
     - Run `{{verify_format}}` — must produce no diff after running.

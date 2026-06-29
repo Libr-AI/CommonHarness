@@ -31,11 +31,7 @@ You are the **coordinator** for an iteration on this repository. Follow the harn
     - **Scaffold path**: use the four pre-named phases (architecture decisions, directory skeleton + manifest, first runnable module + verify wiring, CONTRIBUTING fill + CI + close-out). Fill in the `## Architecture decisions` table by asking me concrete questions (language, package manager, test runner, formatter, CI provider, license, deploy target). Phases 1–4 are pre-named in the template — don't invent new ones. Phase 4 explicitly removes `.harness/SCAFFOLD-PENDING`.
     - **Spec-bearing brief**: insert a Phase 0 whose checklist is: draft `{{paths_spec_dir}}<task-id>.md` (Goal / Constraints / Design decisions / Alternatives / Risks / Open questions), confirm with me, commit `docs: spec for <task-id>`, session boundary. Then the path's normal phases follow.
     - Open questions
-11. Update `.harness/CURRENT.md`:
-    ```
-    status: in_progress: <task-id>
-    last-updated: <today>
-    ```
+11. Update `.harness/CURRENT.md` so its first line is `status: in_progress: <task-id>` and `last-updated: <today>` (inline, not a fenced block — keeps this template safe to paste inside a code block).
 12. Hand off. In your reply to me, after writing the brief to disk:
     - State the task-id and path, and tell me the brief is saved at `.harness/active/<task-id>.md` — **point me there to review the full plan; do NOT paste the brief contents back to me** (it's already on disk; dumping it just clutters the hand-off).
     - State whether to switch to implementer mode in **this same session** (light path with no spec) or **a fresh session** (full / scaffold path, or any spec-bearing brief).
