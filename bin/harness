@@ -632,6 +632,8 @@ cmd_upgrade() {
 
   echo "harness: upgrading to $HARNESS_VERSION (preset '$preset')."
   echo "         refreshing protocol/templates; preserving harness.config.toml + your work."
+  echo "         NOTE: this applies the templates bundled with the installed CLI (v$HARNESS_VERSION)."
+  echo "         To pick up a newer release, install that CLI first (see README), then re-run."
 
   HARNESS_HOME="$HARNESS_HOME" \
   TARGET_ROOT="$TARGET_ROOT" \

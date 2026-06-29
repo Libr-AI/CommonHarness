@@ -1,8 +1,13 @@
 <!--
 TEMPLATE for .harness/active/<task-id>.md
-The coordinator copies this and fills in placeholders.
+The coordinator copies the skeleton (between the harness:begin/end markers) and
+fills in placeholders. That skeleton is upstream-managed and refreshed by
+`harness upgrade`. Anything you add under "Project brief conventions" at the
+bottom (OUTSIDE the markers) is yours and is preserved across upgrades — the
+coordinator folds it into every brief it writes.
 -->
 
+<!-- harness:begin -->
 ---
 id: <task-id>                       # YYYY-MM-DD-<slug>, e.g. 2026-04-29-add-tags-to-milestones
 status: in_progress                 # in_progress | completed
@@ -168,3 +173,16 @@ Filled in ONLY by the last session before archiving.
 - [ ] Brief moved to `.harness/archive/<id>.md`
 - [ ] [.harness/CURRENT.md](../CURRENT.md) reset to `idle`
 - [ ] PR opened (`{{branch_feature_prefix}}<task-id> → {{branch_main}}`) with [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md) filled
+<!-- harness:end -->
+
+## Project brief conventions (preserved across `harness upgrade`)
+
+<!--
+Project-wide additions the coordinator MUST fold into every brief it writes —
+e.g. an always-present "Security review" phase, extra closing-checklist items,
+required reviewers/labels, a house commit-message convention. This section lives
+OUTSIDE the harness:begin/end fence, so `harness upgrade` keeps it while still
+refreshing the skeleton above. Empty = no project extras.
+-->
+
+- (none yet)

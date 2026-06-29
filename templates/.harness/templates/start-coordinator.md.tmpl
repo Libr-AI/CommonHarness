@@ -25,7 +25,7 @@ You are the **coordinator** for an iteration on this repository. Follow the harn
    - Otherwise run Steps 1–3 (Schema / Cross-cutting / Tests) and decide **light** or **full**.
 8. **Spec gate.** Apply Step 4 of `.harness/triage.md`. If the task warrants a standalone design spec, the brief will include a `spec:` frontmatter field and a `Phase 0: Write design spec` before its other phases.
 9. Generate a `<task-id>` of the form `YYYY-MM-DD-<slug>` (slug = 2–4 lowercase words separated by `-`, derived from the goal).
-10. Copy `.harness/templates/task-brief.md` → `.harness/active/<task-id>.md` and fill it in:
+10. Copy the **skeleton between the `harness:begin/end` markers** of `.harness/templates/task-brief.md` → `.harness/active/<task-id>.md` and fill it in (drop the marker comments in the copy). **Also read the "Project brief conventions" section at the bottom of the template (outside the fence) and fold any items there into this brief** (e.g. an always-required phase or extra closing-checklist items):
     - frontmatter (id / created / created_by / target_branch / `path: light | full | scaffold` / optional `spec: {{paths_spec_dir}}<task-id>.md`)
     - Goal, Background
     - **Scaffold path**: use the four pre-named phases (architecture decisions, directory skeleton + manifest, first runnable module + verify wiring, CONTRIBUTING fill + CI + close-out). Fill in the `## Architecture decisions` table by asking me concrete questions (language, package manager, test runner, formatter, CI provider, license, deploy target). Phases 1–4 are pre-named in the template — don't invent new ones. Phase 4 explicitly removes `.harness/SCAFFOLD-PENDING`.
