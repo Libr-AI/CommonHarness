@@ -17,6 +17,7 @@ Language-agnostic. Three AI-platform integrations + GitHub. Designed so target r
 - **State on disk** — task state lives in `.harness/` files, so sessions can crash and resume with no information loss. `.harness/CURRENT.md` is **per-clone local state** (which task this working copy is driving; git-ignored); the shared truth across a team is the committed `.harness/active/` brief set. `.harness/SCAFFOLD-PENDING` is the marker that drives the scaffold gate.
 - **Cross-task memory** — `.harness/MEMORY.md` accumulates conventions, pitfalls, and decisions over time, surfaced to every new session at every entry point (SessionStart hooks for Claude Code / Codex, the Cursor rule, and the coordinator/implementer prompts) so any tool reads the same memory.
 - **Planning backlog** — `.harness/TODO.md` is the coordinator's cross-session todo list: tasks scoped/split/prioritised but not yet briefed. The in-chat plan dies with a session; this file survives it, so any fresh coordinator reads the backlog on startup, proposes a recommended order, and asks which to start. The coordinator is a resident planner across the whole project; phase-to-phase hand-offs are the implementer's own and always emit the next kickoff in full.
+- **Skill distillation** — at task close-out the implementer judges whether the finished task established a **reusable, generalisable procedure** and — only for a high-value candidate — proposes distilling it into a tool-agnostic `.harness/skills/<name>/SKILL.md` (you opt in). Future coordinator/implementer sessions read the skill library and reuse it; `harness skills` lists it. Distinct from MEMORY (facts) and ARCHITECTURE (file map); gated by `[skills] distill`.
 - **Three AI-platform hooks** — Claude Code (slash command + `SessionStart` / `PreToolUse` hooks), Cursor (`alwaysApply` rule), Codex (MCP skill + `SessionStart` / `PreToolUse` hooks).
 - **GitHub PR template** with a required protocol-status field.
 
@@ -45,7 +46,7 @@ CommonHarness is distributed as **release tags**. Every install pins to a specif
 In your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.8.0/install.sh | bash
 ```
 
 When this finishes, the `harness` CLI is at `~/.local/bin/harness` (symlinked through `~/.commonharness/current/`).
@@ -74,7 +75,7 @@ echo $PATH | tr ':' '\n' | grep -F "$HOME/.local/bin"
 harness --version
 ```
 
-Expected: `harness 0.7.2`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
+Expected: `harness 0.8.0`. If you see `command not found: harness`, redo Step 2 (most likely the PATH change didn't propagate to your current shell — open a new terminal window).
 
 ### Pin to a different version
 
@@ -96,16 +97,16 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/main/install.
 ### Manual install (if you don't want curl-pipe-bash)
 
 ```bash
-git clone --depth 1 --branch v0.7.2 \
+git clone --depth 1 --branch v0.8.0 \
   https://github.com/Libr-AI/CommonHarness.git \
-  ~/.commonharness/v0.7.2
-~/.commonharness/v0.7.2/install.sh
+  ~/.commonharness/v0.8.0
+~/.commonharness/v0.8.0/install.sh
 ```
 
 To use SSH instead, set `HARNESS_REPO_URL` (note: env var goes before `bash`, not before `curl`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.2/install.sh \
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.8.0/install.sh \
   | HARNESS_REPO_URL=git@github.com:Libr-AI/CommonHarness.git bash
 ```
 
@@ -115,9 +116,9 @@ curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.2/instal
 
 ```
 ~/.commonharness/
-├── v0.7.1/                ← pinned snapshot (shallow tag clone, can't switch branches)
-├── v0.7.2/                ← later, after upgrade — old versions kept for rollback
-└── current  →  v0.7.2     ← which version is active
+├── v0.7.2/                ← pinned snapshot (shallow tag clone, can't switch branches)
+├── v0.8.0/                ← later, after upgrade — old versions kept for rollback
+└── current  →  v0.8.0     ← which version is active
 ~/.local/bin/harness  →  ~/.commonharness/current/bin/harness
 ```
 
@@ -191,6 +192,7 @@ harness status                 # show CURRENT.md + the active brief (+ team view
 harness mode [solo|team]       # show or set the collaboration mode
 harness lang [<bcp47>]         # show or set the language for repo artifacts (specs/briefs/docs)
 harness arch [yes|no]          # show or set whether an architecture doc is provided (scaffold)
+harness skills                 # list distilled reusable skills (.harness/skills/)
 harness end                    # archive a finished task → CURRENT.md back to idle
 harness remember "<text>"      # append a convention/pitfall/decision to MEMORY.md
 harness curate-memory          # quarterly MEMORY.md cleanup (opens it in $EDITOR)
@@ -239,7 +241,7 @@ CommonHarness sorts files in the target repo into three layers, and each behaves
 | **Managed**        | `AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/{commands,hooks}/*`, `.cursor/rules/harness.mdc`, `mcp/skills/harness/SKILL.md`, `.codex/hooks/check-harness-state.sh` | Overwritten cleanly from upstream templates                   |
 | **Fenced fragment**| `CONTRIBUTING.md`, `CLAUDE.md`, `.github/PULL_REQUEST_TEMPLATE.md`                          | **Marker-aware merge**: only the `<!-- harness:begin --> … <!-- harness:end -->` block is replaced; everything outside (your business content) is preserved |
 | **Hooks-merge JSON**| `.claude/settings.json`, `.codex/hooks.json`                                              | **Only the `hooks` key is replaced** from upstream; every other top-level key you add (`permissions`, `env`, …) is preserved — even under `--force` |
-| **Owned**          | `.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/TODO.md`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*` | Never touched. The scaffold marker is created by `--greenfield` init and removed by `harness end` of a `path: scaffold` brief. Spec files are created by the implementer in Phase 0. |
+| **Owned**          | `.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/TODO.md`, `.harness/skills/*`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*` | Never touched. The scaffold marker is created by `--greenfield` init and removed by `harness end` of a `path: scaffold` brief. Spec files are created by the implementer in Phase 0. |
 
 This is what makes the protocol upgradable without clobbering project-specific work.
 
@@ -251,14 +253,14 @@ This is what makes the protocol upgradable without clobbering project-specific w
 
 ```bash
 # Install a new version alongside the old one + flip 'current'.
-# (Replace v0.7.2 with whichever release you're upgrading to.)
-curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.7.2/install.sh \
-  | HARNESS_VERSION=v0.7.2 bash
+# (Replace v0.8.0 with whichever release you're upgrading to.)
+curl -fsSL https://raw.githubusercontent.com/Libr-AI/CommonHarness/v0.8.0/install.sh \
+  | HARNESS_VERSION=v0.8.0 bash
 
 harness --version    # confirms the new version is now active
 
 # Roll back any time by flipping the symlink (older versions stay on disk):
-ln -sfn ~/.commonharness/v0.7.1 ~/.commonharness/current
+ln -sfn ~/.commonharness/v0.7.2 ~/.commonharness/current
 ```
 
 Old versions stay on disk; switching is a single symlink. Because each version dir is a shallow tag clone, you can't accidentally `git checkout` a different ref and produce inconsistent behavior across the team.
@@ -284,7 +286,7 @@ git diff            # review what changed
 
 - **Managed files** (`AGENTS.md`, `.harness/{workflow,triage,README,templates/*}`, `.claude/*`, `.cursor/rules/*`, `mcp/skills/*`) → re-rendered from upstream templates (your edits to these files are overwritten — they're not meant to be edited locally).
 - **Fenced fragments** (`CONTRIBUTING.md`, `CLAUDE.md`, `.github/PULL_REQUEST_TEMPLATE.md`) → marker-aware merged. Only the `<!-- harness:begin --> … <!-- harness:end -->` block is replaced; your business content outside the fence is preserved.
-- **Owned files** (`.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/TODO.md`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*`) → never touched. In-progress tasks, accumulated memory, and existing specs all survive.
+- **Owned files** (`.harness/CURRENT.md`, `.harness/MEMORY.md`, `.harness/TODO.md`, `.harness/skills/*`, `.harness/active/*`, `.harness/archive/*`, `.harness/SCAFFOLD-PENDING`, `docs/specs/*`) → never touched. In-progress tasks, accumulated memory, and existing specs all survive.
 - **`harness.config.toml`** → depends on the command: **`harness upgrade`** preserves it (overlays your tuned values onto the new structure, adds any new sections with defaults, bumps `harness_version`); **`harness init --force`** regenerates it from the preset (resetting `[verify]` / `[paths]` / etc.). For upgrades, prefer `harness upgrade`.
 
 The renderer prints `+ wrote` / `~ merged` / `· skipped` for each file so the diff is auditable.

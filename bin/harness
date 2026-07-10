@@ -147,6 +147,7 @@ Workflow commands:
   mode [solo|team]                   Show or set the collaboration mode
   lang [<bcp47>]                     Show or set the artifact (repo docs) language
   arch [yes|no]                      Show or set whether an architecture doc is provided
+  skills                             List distilled reusable skills (.harness/skills/)
   end                                Archive a completed task → idle
   remember "<text>"                  Append an entry to MEMORY.md
   curate-memory                      Quarterly MEMORY.md cleanup
@@ -474,6 +475,20 @@ cmd_lang() {
   echo "harness: artifact language set to '$code'."
 }
 
+cmd_skills() {
+  require_initialized
+  local dir="$HARNESS_DIR/skills" f name desc found=0
+  echo "=== Distilled skills (.harness/skills/) ==="
+  for f in "$dir"/*/SKILL.md; do
+    [[ -e "$f" ]] || continue
+    found=1
+    name="$(basename "$(dirname "$f")")"
+    desc="$(awk -F': *' '/^description:/ {sub(/^description: */, ""); print; exit}' "$f")"
+    printf '  %-28s %s\n' "$name" "${desc:-}"
+  done
+  [[ "$found" -eq 0 ]] && echo "  (none yet — the close-out skill-distillation gate proposes them)"
+}
+
 cmd_arch() {
   require_initialized
   local choice="${1:-}"
@@ -666,6 +681,7 @@ case "${1:-help}" in
   mode)           shift; cmd_mode "$@" ;;
   lang)           shift; cmd_lang "$@" ;;
   arch)           shift; cmd_arch "$@" ;;
+  skills)         shift; cmd_skills "$@" ;;
   end)            shift; cmd_end "$@" ;;
   remember)       shift; cmd_remember "$@" ;;
   curate-memory)  shift; cmd_curate_memory "$@" ;;

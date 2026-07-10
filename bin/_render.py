@@ -123,6 +123,7 @@ def build_vars(preset: dict) -> dict[str, str]:
     lang   = preset.get("language", {})
     adopt  = preset.get("adoption", {})
     arch   = preset.get("architecture", {})
+    skills = preset.get("skills", {})
 
     fmt        = verify.get("format", "")
     fmt_check  = verify.get("format_check", "")
@@ -175,6 +176,7 @@ def build_vars(preset: dict) -> dict[str, str]:
         "adoption_on_init":            adopt.get("on_init", "auto"),
         "architecture_provided":       arch.get("provided", ""),
         "architecture_global_basis":   "true" if arch.get("global_basis", True) else "false",
+        "skills_distill":              skills.get("distill", "auto"),
 
         "int_claude_code":             bf("claude_code"),
         "int_cursor":                  bf("cursor"),
@@ -440,7 +442,7 @@ def main() -> int:
     ensure_gitignore_entry(TARGET_ROOT / ".gitignore", ".harness/CURRENT.md")
 
     # Ensure state directories exist with .gitkeep.
-    for sub in (".harness/active", ".harness/archive"):
+    for sub in (".harness/active", ".harness/archive", ".harness/skills"):
         d = TARGET_ROOT / sub
         d.mkdir(parents=True, exist_ok=True)
         keep = d / ".gitkeep"

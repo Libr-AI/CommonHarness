@@ -79,6 +79,17 @@ If (and only if) detection turned up prior memory, ask the user via the tool's n
 
 Gated by `[adoption] on_init = "auto" | "off"`. Once `.harness/MEMORY.md` is the unified store, ongoing memory goes through `harness remember` and every tool reads it (SessionStart hooks + Cursor rule + the coordinator/implementer prompts all load MEMORY.md).
 
+## Skill-distillation gate — capture reusable procedures
+
+Runs at **task close-out** (implementer final phase), gated by `[skills] distill = "auto" | "off"`. Purpose: when a task establishes a procedure future tasks will repeat, package it once so it's reused — instead of re-deriving it every time. This is about **reusable procedures** (how-to), distinct from `MEMORY.md` (facts/conventions/pitfalls) and `{{paths_architecture_doc}}` (the change-X→which-files map).
+
+1. **Judge from the task's artifacts** (the brief/phases just completed, the spec if any, the diff, MEMORY). Is there a **repeatable, generalisable, multi-step procedure** here — one likely to recur, not already a skill, and not trivially obvious? Examples: "add a new API endpoint end-to-end", "wire a new drag-drop group", "add a review-queue column".
+2. **Be conservative.** Most tasks yield NO skill. Propose only high-value, high-confidence candidates. Nothing qualifies → say nothing (no clutter — this is an anti-garbage rule).
+3. **Propose + explain, let the user choose.** For each candidate: its name, when-to-use, and what it would cover. Ask whether to distil it. Never write without the user's yes.
+4. **Distil (on yes)** into `.harness/skills/<name>/SKILL.md` — a tool-agnostic skill: frontmatter (`name`, `description` = when-to-use trigger) + numbered steps + links to the code/spec it generalises. Team-shared (committed), never overwritten by `harness upgrade`.
+
+Distilled skills are read back by future sessions: the coordinator and implementer list `.harness/skills/` on startup and apply a matching skill's steps. `harness skills` lists the library.
+
 ## Implementer session — step by step
 
 The implementer is opened with [templates/start-implementer.md](templates/start-implementer.md).

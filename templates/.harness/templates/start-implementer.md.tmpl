@@ -20,7 +20,7 @@ You are the **implementer** for an iteration on this repository. Follow the harn
    - **If the spec file already exists** → you are in Phase 1 or later. **Read `{{paths_spec_dir}}<task-id>.md` in full now.** This is the authoritative design reference for the task. Every implementation decision must be consistent with it; if the spec is silent or ambiguous on a question, ask me — do not invent your way out. The brief is the checklist; the spec is the design.
 5. Read `.harness/MEMORY.md` to load existing conventions/pitfalls/decisions.
 6. Read `AGENTS.md` and `.harness/workflow.md` for protocol rules (commit points, session boundaries, anti-garbage rules).
-7. Read `{{paths_architecture_doc}}` so you know the project structure and the "change X → touch which files" lookup. (For scaffold-path Phase 1 this file may not exist yet — you'll create it as part of the phase work.)
+7. Read `{{paths_architecture_doc}}` so you know the project structure and the "change X → touch which files" lookup. (For scaffold-path Phase 1 this file may not exist yet — you'll create it as part of the phase work.) Then list `.harness/skills/` — if a distilled skill matches this phase's work (or the brief points to one), read its `SKILL.md` and follow its steps.
 8. Append a session-log header to `## Implementation log` in the active brief — a line of the form `### Session <ISO-timestamp> — <tool name> — Phase <n>` (where n is the next phase whose checklist isn't fully ticked). (Written as inline text, not a fenced block, so this kickoff stays safe to paste inside a code block.)
 9. Find the next unchecked phase. Execute its checklist items in order. Use `{{paths_architecture_doc}}` "change X → which files" table to know what to edit. **If the brief has a `spec:` field, every implementation decision in this phase must trace back to the spec** — when in doubt, re-open the spec file and quote the relevant section in your reasoning.
 10. When you reach `> ✋ Commit point`:
@@ -39,6 +39,7 @@ You are the **implementer** for an iteration on this repository. Follow the harn
     - Move the brief: `mv .harness/active/<task-id>.md .harness/archive/<task-id>.md`.
     - Reset `.harness/CURRENT.md` to `idle`.
     - Ask me whether any conventions/pitfalls/decisions/open-questions from this task should go into MEMORY.md. If yes, suggest the exact `harness remember "..."` invocations.
+    - **Skill-distillation gate** (unless `[skills].distill` is `off`; full spec in `.harness/workflow.md` → "Skill-distillation gate"): judge from this task's artifacts whether it established a **reusable, generalisable procedure** future tasks will repeat. Be conservative — most tasks yield none; propose nothing if nothing qualifies. If there IS a high-value candidate, name it, explain when it's used and what it covers, and ask me whether to distil it; on my yes, write it to `.harness/skills/<name>/SKILL.md` (tool-agnostic: `name` + `description` trigger + numbered steps + links).
     - Tell me to open the PR `{{branch_feature_prefix}}<task-id> → {{branch_main}}` using the PR template.
 
 ## Hard rules — non-negotiable

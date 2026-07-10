@@ -60,5 +60,12 @@ on_init = "{{adoption_on_init}}"
 provided     = "{{architecture_provided}}"
 global_basis = {{architecture_global_basis}}
 
+[skills]
+# At task close-out, "auto" = the implementer evaluates whether the finished
+# task produced a reusable, generalisable procedure worth distilling into a
+# tool-agnostic skill at .harness/skills/<name>/SKILL.md, and — only if there's
+# a high-value candidate — proposes it for you to accept. "off" = never propose.
+distill = "{{skills_distill}}"
+
 [presets]
 preset = "{{preset}}"
